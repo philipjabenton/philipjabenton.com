@@ -37,4 +37,4 @@ After pushing changes, purge the jsDelivr cache to ensure the latest version is 
 
 ## Copyright
 
-© 2026 Philip Benton. All rights reserved. This code is proprietary and may not be reused or redistributed.
+© 2026 Philip J.A Benton. All rights reserved. This code is proprietary and may not be reused or redistributed.
