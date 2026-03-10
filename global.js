@@ -11,7 +11,7 @@ addEventListener("DOMContentLoaded", () => {
   if (mainWrapper) {
     gsap.from(mainWrapper, {
       opacity: 0,
-      duration: 10,
+      duration: 0.35,
       ease: "power2.out",
       clearProps: "opacity"
     });
