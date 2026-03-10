@@ -2,34 +2,7 @@
 // This code is proprietary and may not be reused or redistributed.
 
 addEventListener("DOMContentLoaded", () => {
-
-  // ============================================================
-  // PAGE TRANSITIONS — ENTRANCE
-  // Fades the main wrapper in on every page load.
-  // ============================================================
-  const mainWrapper = document.querySelector('.page-wrapper');
-  if (mainWrapper) {
-    gsap.from(mainWrapper, {
-      opacity: 0,
-      duration: 0.35,
-      ease: "power2.out",
-      clearProps: "opacity"
-    });
-  }
-
-  // Handles bfcache — ensures page isn't left faded on back/forward navigation
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) {
-      if (nav) gsap.set(nav, { yPercent: 0 });
-      if (mainWrapper) {
-        gsap.fromTo(mainWrapper,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.4, ease: "power2.out", clearProps: "opacity" }
-        );
-      }
-    }
-  });
-  
+ 
 
   // ============================================================
   // INITIALISATION
@@ -90,10 +63,6 @@ addEventListener("DOMContentLoaded", () => {
 
   // ============================================================
   // PAGE TRANSITIONS — EXIT
-  // Intercepts internal link clicks. Slides the nav up and
-  // fades the page out before navigating to the new URL.
-  // Ignores: external links, new-tab links, anchor links,
-  // already-active links, and modified clicks (cmd/ctrl).
   // ============================================================
   document.addEventListener('click', (e) => {
     const link = e.target.closest('a');
@@ -102,7 +71,6 @@ addEventListener("DOMContentLoaded", () => {
     const url = link.getAttribute('href');
     if (!url) return;
   
-    // Ignore anything that shouldn't trigger a transition
     const isExternal = link.hostname !== window.location.hostname;
     const isNewTab = link.target === '_blank';
     const isAnchor = url.startsWith('#');
@@ -113,21 +81,17 @@ addEventListener("DOMContentLoaded", () => {
   
     e.preventDefault();
   
-    const tl = gsap.timeline({
-      onComplete: () => window.location.href = url
-    });
-  
-    tl.to(nav, {
+    gsap.to(nav, {
       yPercent: -100,
       duration: 0.35,
-      ease: "power2.inOut"
+      ease: "power2.inOut",
+      onComplete: () => window.location.href = url
     });
+  });
   
-    tl.to(mainWrapper, {
-      opacity: 0,
-      duration: 5.25,
-      ease: "power2.in"
-    }, "<0.1"); // slight overlap — content starts fading just after nav starts rising
+  // Restore nav on bfcache back/forward navigation
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted && nav) gsap.set(nav, { yPercent: 0 });
   });
 
 
