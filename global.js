@@ -17,6 +17,14 @@ addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Handles bfcache — ensures page isn't left faded on back/forward navigation
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted && mainWrapper) {
+      gsap.set(mainWrapper, { opacity: 1 });
+    }
+  });
+  
+
   // ============================================================
   // INITIALISATION
   // Wait for the DOM to fully load before running any scripts.
