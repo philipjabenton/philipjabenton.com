@@ -20,8 +20,13 @@ addEventListener("DOMContentLoaded", () => {
   // Handles bfcache — ensures page isn't left faded on back/forward navigation
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
-      if (mainWrapper) gsap.set(mainWrapper, { opacity: 1 });
       if (nav) gsap.set(nav, { yPercent: 0 });
+      if (mainWrapper) {
+        gsap.fromTo(mainWrapper,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.4, ease: "power2.out", clearProps: "opacity" }
+        );
+      }
     }
   });
   
