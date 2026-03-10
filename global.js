@@ -13,6 +13,9 @@ addEventListener("DOMContentLoaded", () => {
   const nav = document.querySelector('.nav_component');
   const navBg = document.querySelector('.nav_bg');
   const mainWrapper = document.querySelector('.main_wrapper');
+  const menuButton = document.querySelector('.nav_icon');
+  const navMenu = document.querySelector('.nav_mobile-links-wrapper');
+  
   if (!nav || !navBg) return;
 
 
@@ -88,9 +91,9 @@ addEventListener("DOMContentLoaded", () => {
 
     e.preventDefault();
 
-    if (isMobile()) {
-     window.location.href = url;
-     return;
+    if (navMenu && navMenu.classList.contains('is-open')) {
+      window.location.href = url;
+      return;
     }
 
     const tl = gsap.timeline({
@@ -370,9 +373,6 @@ addEventListener("DOMContentLoaded", () => {
   // mobile menu is opened or closed, preventing the page from
   // scrolling behind the open menu.
   // ============================================================
-  const menuButton = document.querySelector('.nav_icon');
-  const navMenu = document.querySelector('.nav_mobile-links-wrapper');
-
   if (!menuButton || !navMenu) return;
 
   menuButton.addEventListener('click', () => {
