@@ -12,6 +12,7 @@ addEventListener("DOMContentLoaded", () => {
   // ============================================================
   const nav = document.querySelector('.nav_component');
   const navBg = document.querySelector('.nav_bg');
+  const mainWrapper = document.querySelector('.main_wrapper');
   if (!nav || !navBg) return;
 
 
@@ -87,13 +88,13 @@ addEventListener("DOMContentLoaded", () => {
 
     e.preventDefault();
 
-    gsap.to(nav, {
-      yPercent: -100,
-      duration: 0.35,
+    const tl = gsap.timeline({
       delay: 0.15,
-      ease: "power1.inOut",
       onComplete: () => window.location.href = url
     });
+    
+    tl.to(mainWrapper, { opacity: 0, duration: 0.15, ease: "power1.in" })
+      .to(nav, { yPercent: -100, duration: 0.35, ease: "power1.inOut" });
   });
 
 
