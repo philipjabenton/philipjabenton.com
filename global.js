@@ -90,7 +90,7 @@ addEventListener("DOMContentLoaded", () => {
     gsap.to(nav, {
       yPercent: -100,
       duration: 0.35,
-      ease: "power2.inOut",
+      ease: "power1.inOut",
       onComplete: () => window.location.href = url
     });
   });
