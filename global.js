@@ -11,7 +11,7 @@ addEventListener("DOMContentLoaded", () => {
   if (mainWrapper) {
     gsap.from(mainWrapper, {
       opacity: 0,
-      duration: 4,
+      duration: 0.4,
       ease: "power2.out",
       clearProps: "opacity"
     });
@@ -111,7 +111,7 @@ addEventListener("DOMContentLoaded", () => {
   
     tl.to(mainWrapper, {
       opacity: 0,
-      duration: 0.25,
+      duration: 5.25,
       ease: "power2.in"
     }, "<0.1"); // slight overlap — content starts fading just after nav starts rising
   });
