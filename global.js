@@ -4,6 +4,20 @@
 addEventListener("DOMContentLoaded", () => {
 
   // ============================================================
+  // PAGE TRANSITIONS — ENTRANCE
+  // Fades the main wrapper in on every page load.
+  // ============================================================
+  const mainWrapper = document.querySelector('.page-wrapper');
+  if (mainWrapper) {
+    gsap.from(mainWrapper, {
+      opacity: 0,
+      duration: 0.4,
+      ease: "power2.out",
+      clearProps: "opacity"
+    });
+  }
+
+  // ============================================================
   // INITIALISATION
   // Wait for the DOM to fully load before running any scripts.
   // Grab the nav component and its background element.
@@ -57,6 +71,49 @@ addEventListener("DOMContentLoaded", () => {
     onUpdate: (self) => {
       self.direction === -1 ? showAnim.play() : showAnim.reverse();
     }
+  });
+
+
+  // ============================================================
+  // PAGE TRANSITIONS — EXIT
+  // Intercepts internal link clicks. Slides the nav up and
+  // fades the page out before navigating to the new URL.
+  // Ignores: external links, new-tab links, anchor links,
+  // already-active links, and modified clicks (cmd/ctrl).
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (!link) return;
+  
+    const url = link.getAttribute('href');
+    if (!url) return;
+  
+    // Ignore anything that shouldn't trigger a transition
+    const isExternal = link.hostname !== window.location.hostname;
+    const isNewTab = link.target === '_blank';
+    const isAnchor = url.startsWith('#');
+    const isModified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+    const isSamePage = link.href === window.location.href;
+  
+    if (isExternal || isNewTab || isAnchor || isModified || isSamePage) return;
+  
+    e.preventDefault();
+  
+    const tl = gsap.timeline({
+      onComplete: () => window.location.href = url
+    });
+  
+    tl.to(nav, {
+      yPercent: -100,
+      duration: 0.35,
+      ease: "power2.inOut"
+    });
+  
+    tl.to(mainWrapper, {
+      opacity: 0,
+      duration: 0.25,
+      ease: "power2.in"
+    }, "<0.1"); // slight overlap — content starts fading just after nav starts rising
   });
 
 
