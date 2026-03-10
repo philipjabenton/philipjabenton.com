@@ -88,6 +88,11 @@ addEventListener("DOMContentLoaded", () => {
 
     e.preventDefault();
 
+    if (isMobile()) {
+     window.location.href = url;
+     return;
+    }
+
     const tl = gsap.timeline({
       delay: 0.15,
       onComplete: () => window.location.href = url
