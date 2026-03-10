@@ -336,6 +336,10 @@ addEventListener("DOMContentLoaded", () => {
     } else {
       resetRotator();
     }
+  } else {
+    // No hero title — hide the marquee and ensure logo is in natural position
+    if (marquee) gsap.set(marquee, { display: 'none' });
+    if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
   }
 
 
