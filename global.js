@@ -90,73 +90,125 @@ addEventListener("DOMContentLoaded", () => {
   // ============================================================
   // MOBILE NAV ANIMATION
   // Replicates the Webflow 'Nav icon toggle' interaction.
-  // The timeline is created paused and toggled play/reverse
-  // on each click of .nav_icon — matching Webflow's
-  // 'Toggle play/reverse' behaviour.
+  // Split into two separate timelines — one for open, one for
+  // close — so the closing animation can run its own sequence
+  // rather than simply reversing the open timeline.
   //
-  // Forward (open):
+  // Open timeline (navTl):
   //   Lines 1 & 3 slide toward each other, line 2 scales out,
   //   then lines 1 & 3 rotate to form an X. The menu wrapper
-  //   fades in, nav links stagger in from the left (end-first),
+  //   fades in, nav links stagger in from the left end-first,
   //   and social icons rise into view.
   //
-  // Reverse (close):
-  //   All of the above plays backwards.
+  // Close timeline (closeTl):
+  //   Icon returns to its original state immediately while the
+  //   wrapper fades out in parallel, rather than waiting for
+  //   all nav links to exit before the icon moves.
+  //   onComplete resets closeTl to the start so it's ready
+  //   to fire again on the next close.
+  //
+  // The scroll lock is managed in the click handler — locking
+  // on open and releasing on close — to prevent the page
+  // scrolling behind the open menu.
   // ============================================================
-  const lineOne   = document.querySelector('.nav_icon-line.is-one');
-  const lineTwo   = document.querySelector('.nav_icon-line.is-two');
-  const lineThree = document.querySelector('.nav_icon-line.is-three');
-  const navLinks  = document.querySelectorAll('.nav_mobile-links-wrapper .nav_link');
+  const lineOne      = document.querySelector('.nav_icon-line.is-one');
+  const lineTwo      = document.querySelector('.nav_icon-line.is-two');
+  const lineThree    = document.querySelector('.nav_icon-line.is-three');
+  const navLinks     = document.querySelectorAll('.nav_mobile-links-wrapper .nav_link');
   const socialMobile = document.querySelector('.social_icons-mobile');
   
   if (menuButton && navMenu && lineOne && lineTwo && lineThree) {
   
+    // ----------------------------------------------------------
+    // OPEN TIMELINE
+    // Plays forward on menu open. classList.toggle adds
+    // .is-open to the wrapper at the start of the sequence.
+    // ----------------------------------------------------------
     const navTl = gsap.timeline({ paused: true });
   
-    // Lines 1 & 3 slide toward each other
-    navTl.to(lineOne,   { y: 7,  duration: 0.2, ease: "power1.inOut" }, 0)
-         .to(lineThree, { y: -7, duration: 0.2, ease: "power1.inOut" }, 0)
+    navTl
+      // Lines 1 & 3 slide toward each other
+      .to(lineOne,   { y: 7,  duration: 0.2, ease: "power1.inOut" }, 0)
+      .to(lineThree, { y: -7, duration: 0.2, ease: "power1.inOut" }, 0)
   
-    // Toggle .is-open on the menu wrapper
-         .add(() => navMenu.classList.toggle('is-open'), 0)
+      // Toggle .is-open on the menu wrapper
+      .add(() => navMenu.classList.toggle('is-open'), 0)
   
-    // Menu wrapper fades in
-         .from(navMenu, { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 0.1)
+      // Menu wrapper fades in
+      .from(navMenu, { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 0.1)
   
-    // Line 2 scales out
-         .to(lineTwo, { scaleX: 0, duration: 0.1, ease: "power1.inOut" }, 0.2)
+      // Line 2 scales out
+      .to(lineTwo, { scaleX: 0, duration: 0.1, ease: "power1.inOut" }, 0.2)
   
-    // Lines 1 & 3 rotate to form X
-         .to(lineOne,   { rotate: -45, duration: 0.2, ease: "power1.inOut" }, 0.3)
-         .to(lineThree, { rotate:  45, duration: 0.2, ease: "power1.inOut" }, 0.3)
+      // Lines 1 & 3 rotate to form X
+      .to(lineOne,   { rotate: -45, duration: 0.2, ease: "power1.inOut" }, 0.3)
+      .to(lineThree, { rotate:  45, duration: 0.2, ease: "power1.inOut" }, 0.3)
   
-    // Nav links stagger in from left, end-first
-         .from(navLinks, {
-           opacity: 0,
-           x: -15,
-           duration: 0.35,
-           ease: "power1.inOut",
-           stagger: { each: 0.05, from: "end" }
-         }, 0.5)
+      // Nav links stagger in from left, end-first
+      .from(navLinks, {
+        opacity: 0,
+        x: -15,
+        duration: 0.35,
+        ease: "power1.inOut",
+        stagger: { each: 0.05, from: "end" }
+      }, 0.5)
   
-    // Social icons rise into view
-         .from(socialMobile, { opacity: 0, y: 5, duration: 0.1 }, 0.9);
+      // Social icons rise into view
+      .from(socialMobile, { opacity: 0, y: 5, duration: 0.1 }, 0.9);
   
-    // Toggle play/reverse on each click
-    // Also locks/unlocks scroll to prevent page scrolling behind open menu
+  
+    // ----------------------------------------------------------
+    // CLOSE TIMELINE
+    // Plays forward on menu close. The icon returns to its
+    // original state immediately while the wrapper fades out
+    // in parallel. classList.remove drops .is-open once the
+    // wrapper has faded. onComplete resets the timeline to
+    // the start so it's ready to fire again on the next close.
+    // ----------------------------------------------------------
+    const closeTl = gsap.timeline({
+      paused: true,
+      onComplete: () => closeTl.pause(0)
+    });
+  
+    closeTl
+      // Lines 1 & 3 unrotate immediately
+      .to(lineOne,   { rotate: 0, duration: 0.2, ease: "power1.inOut" }, 0)
+      .to(lineThree, { rotate: 0, duration: 0.2, ease: "power1.inOut" }, 0)
+  
+      // Line 2 scales back in
+      .to(lineTwo, { scaleX: 1, duration: 0.1, ease: "power1.inOut" }, 0.2)
+  
+      // Lines 1 & 3 return to original Y position
+      .to(lineOne,   { y: 0, duration: 0.2, ease: "power1.inOut" }, 0.3)
+      .to(lineThree, { y: 0, duration: 0.2, ease: "power1.inOut" }, 0.3)
+  
+      // Wrapper fades out in parallel with icon returning
+      .to(navMenu, { opacity: 0, duration: 0.3, ease: "power1.inOut" }, 0)
+  
+      // Remove .is-open once wrapper has faded
+      .add(() => navMenu.classList.remove('is-open'), 0.3);
+  
+  
+    // ----------------------------------------------------------
+    // CLICK HANDLER
+    // Checks current open/closed state and fires the appropriate
+    // timeline. Scroll lock is applied on open and released on
+    // close to prevent the page scrolling behind the menu.
+    // ----------------------------------------------------------
     menuButton.addEventListener('click', () => {
       const isOpen = navMenu.classList.contains('is-open');
   
       if (isOpen) {
-        navTl.reverse();
+        closeTl.play(0);
         document.body.style.overflow = '';
         document.documentElement.style.overflow = '';
       } else {
-        navTl.play();
+        navTl.play(0);
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
       }
     });
+  
   }
 
  
