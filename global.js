@@ -107,6 +107,14 @@ addEventListener("DOMContentLoaded", () => {
   //   onComplete resets closeTl to the start so it's ready
   //   to fire again on the next close.
   //
+  // The menu wrapper is hidden on initialisation using
+  // visibility: hidden rather than display: none, so GSAP
+  // can still calculate dimensions when animating.
+  //
+  // State is tracked via a boolean flag rather than reading
+  // classes from the DOM, which is more reliable when
+  // timelines are mid-play.
+  //
   // The scroll lock is managed in the click handler — locking
   // on open and releasing on close — to prevent the page
   // scrolling behind the open menu.
@@ -118,13 +126,21 @@ addEventListener("DOMContentLoaded", () => {
   const socialMobile = document.querySelector('.social_icons-mobile');
   
   if (menuButton && navMenu && lineOne && lineTwo && lineThree) {
-
+  
+    // Track open/closed state via boolean rather than DOM class
     let menuOpen = false;
+  
+    // Hide menu wrapper on initialisation — Webflow's interaction
+    // previously handled this, so we set it explicitly now that
+    // we own the animation. visibility: hidden rather than
+    // display: none so GSAP can calculate dimensions correctly.
+    gsap.set(navMenu, { opacity: 0, visibility: 'hidden' });
+  
   
     // ----------------------------------------------------------
     // OPEN TIMELINE
-    // Plays forward on menu open. classList.toggle adds
-    // .is-open to the wrapper at the start of the sequence.
+    // Plays forward on menu open. Makes the wrapper visible
+    // before fading it in.
     // ----------------------------------------------------------
     const navTl = gsap.timeline({ paused: true });
   
@@ -133,8 +149,8 @@ addEventListener("DOMContentLoaded", () => {
       .to(lineOne,   { y: 7,  duration: 0.2, ease: "power1.inOut" }, 0)
       .to(lineThree, { y: -7, duration: 0.2, ease: "power1.inOut" }, 0)
   
-      // Toggle .is-open on the menu wrapper
-      .add(() => navMenu.classList.add('is-open'), 0)
+      // Make wrapper visible before fading in
+      .add(() => gsap.set(navMenu, { visibility: 'visible' }), 0.1)
   
       // Menu wrapper fades in
       .from(navMenu, { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 0.1)
@@ -163,9 +179,9 @@ addEventListener("DOMContentLoaded", () => {
     // CLOSE TIMELINE
     // Plays forward on menu close. The icon returns to its
     // original state immediately while the wrapper fades out
-    // in parallel. classList.remove drops .is-open once the
-    // wrapper has faded. onComplete resets the timeline to
-    // the start so it's ready to fire again on the next close.
+    // in parallel. visibility: hidden is applied once the
+    // wrapper has fully faded. onComplete resets the timeline
+    // to the start so it's ready to fire again on next close.
     // ----------------------------------------------------------
     const closeTl = gsap.timeline({
       paused: true,
@@ -177,6 +193,9 @@ addEventListener("DOMContentLoaded", () => {
       .to(lineOne,   { rotate: 0, duration: 0.2, ease: "power1.inOut" }, 0)
       .to(lineThree, { rotate: 0, duration: 0.2, ease: "power1.inOut" }, 0)
   
+      // Wrapper fades out in parallel with icon returning
+      .to(navMenu, { opacity: 0, duration: 0.3, ease: "power1.inOut" }, 0)
+  
       // Line 2 scales back in
       .to(lineTwo, { scaleX: 1, duration: 0.1, ease: "power1.inOut" }, 0.2)
   
@@ -184,18 +203,15 @@ addEventListener("DOMContentLoaded", () => {
       .to(lineOne,   { y: 0, duration: 0.2, ease: "power1.inOut" }, 0.3)
       .to(lineThree, { y: 0, duration: 0.2, ease: "power1.inOut" }, 0.3)
   
-      // Wrapper fades out in parallel with icon returning
-      .to(navMenu, { opacity: 0, duration: 0.3, ease: "power1.inOut" }, 0)
-  
-      // Remove .is-open once wrapper has faded
-      .add(() => navMenu.classList.remove('is-open'), 0.3);
+      // Hide wrapper once faded
+      .add(() => gsap.set(navMenu, { visibility: 'hidden' }), 0.3);
   
   
     // ----------------------------------------------------------
     // CLICK HANDLER
-    // Checks current open/closed state and fires the appropriate
-    // timeline. Scroll lock is applied on open and released on
-    // close to prevent the page scrolling behind the menu.
+    // Uses a boolean flag to track open/closed state reliably
+    // rather than reading from the DOM. Fires the appropriate
+    // timeline and manages scroll lock on each click.
     // ----------------------------------------------------------
     menuButton.addEventListener('click', () => {
       if (menuOpen) {
