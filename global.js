@@ -64,7 +64,7 @@ addEventListener("DOMContentLoaded", () => {
       duration: 0.35,
       delay: 1.35,
       ease: "power1.inOut",
-      clearProps: "all",
+      clearProps: "transform",
       onComplete: () => {
         const showAnim = gsap.from(nav, {
           yPercent: -100,
