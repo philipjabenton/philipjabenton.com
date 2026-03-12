@@ -47,13 +47,10 @@ addEventListener("DOMContentLoaded", () => {
   // in parallel — revisit timing once all entrance animations
   // are ported to GSAP.
   // ============================================================
-  gsap.set(nav, { yPercent: -100 });
-  gsap.from(nav, {
-    yPercent: -100,
-    duration: 0.35,
-    delay: 1.35,
-    ease: "power1.inOut"
-  });
+  gsap.fromTo(nav,
+   { yPercent: -100 },
+   { yPercent: 0, duration: 0.35, delay: 1.35, ease: "power1.inOut" }
+  );
 
 
   // ============================================================
