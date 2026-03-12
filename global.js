@@ -197,12 +197,14 @@ addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------------
     menuButton.addEventListener('click', () => {
       const isOpen = navMenu.classList.contains('is-open');
-  
+    
       if (isOpen) {
+        navTl.pause();
         closeTl.play(0);
         document.body.style.overflow = '';
         document.documentElement.style.overflow = '';
       } else {
+        closeTl.pause();
         navTl.play(0);
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
