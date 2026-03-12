@@ -132,7 +132,7 @@ addEventListener("DOMContentLoaded", () => {
       .to(lineThree, { y: -7, duration: 0.2, ease: "power1.inOut" }, 0)
   
       // Toggle .is-open on the menu wrapper
-      .add(() => navMenu.classList.toggle('is-open'), 0)
+      .add(() => navMenu.classList.add('is-open'), 0)
   
       // Menu wrapper fades in
       .from(navMenu, { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 0.1)
