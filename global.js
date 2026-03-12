@@ -153,7 +153,7 @@ addEventListener("DOMContentLoaded", () => {
       .add(() => gsap.set(navMenu, { visibility: 'visible' }), 0.1)
   
       // Menu wrapper fades in
-      .from(navMenu, { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 0.1)
+      .to(navMenu, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 0.1)
   
       // Line 2 scales out
       .to(lineTwo, { scaleX: 0, duration: 0.1, ease: "power1.inOut" }, 0.2)
