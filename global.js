@@ -98,6 +98,10 @@ addEventListener("DOMContentLoaded", () => {
   // fades in, nav links stagger in from the left end-first,
   // and social icons rise into view.
   //
+  // State is tracked via a boolean flag rather than reading
+  // classes from the DOM, which is more reliable when the
+  // timeline is mid-play.
+  //
   // The scroll lock is managed in the click handler — locking
   // on open and releasing on close — to prevent the page
   // scrolling behind the open menu.
@@ -110,6 +114,15 @@ addEventListener("DOMContentLoaded", () => {
   
   if (menuButton && navMenu && lineOne && lineTwo && lineThree) {
   
+    // Track open/closed state via boolean rather than DOM class
+    let menuOpen = false;
+  
+    // ----------------------------------------------------------
+    // TIMELINE
+    // Plays forward on open, reverses on close. Position
+    // parameters control the sequencing — overlapping tweens
+    // where needed for a natural feel.
+    // ----------------------------------------------------------
     const navTl = gsap.timeline({ paused: true });
   
     navTl
@@ -142,18 +155,20 @@ addEventListener("DOMContentLoaded", () => {
   
     // ----------------------------------------------------------
     // CLICK HANDLER
-    // Plays the timeline on open, reverses on close.
-    // Scroll lock is applied on open and released on close
-    // to prevent the page scrolling behind the menu.
+    // Uses a boolean flag to track open/closed state reliably
+    // rather than reading from the DOM. Plays the timeline on
+    // open, reverses on close. Scroll lock is applied on open
+    // and released on close to prevent the page scrolling
+    // behind the open menu.
     // ----------------------------------------------------------
     menuButton.addEventListener('click', () => {
-      const isOpen = navMenu.classList.contains('is-open');
-  
-      if (isOpen) {
+      if (menuOpen) {
+        menuOpen = false;
         navTl.reverse();
         document.body.style.overflow = '';
         document.documentElement.style.overflow = '';
       } else {
+        menuOpen = true;
         navTl.play();
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
@@ -161,7 +176,7 @@ addEventListener("DOMContentLoaded", () => {
     });
   
   }
-
+ 
  
   // ============================================================
   // NAV CENTRE SWAP & MARQUEE ROTATOR
