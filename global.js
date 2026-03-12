@@ -90,30 +90,13 @@ addEventListener("DOMContentLoaded", () => {
   // ============================================================
   // MOBILE NAV ANIMATION
   // Replicates the Webflow 'Nav icon toggle' interaction.
-  // Split into two separate timelines — one for open, one for
-  // close — so the closing animation can run its own sequence
-  // rather than simply reversing the open timeline.
+  // A single timeline plays forward on open and reverses on
+  // close — matching Webflow's 'Toggle play/reverse' behaviour.
   //
-  // Open timeline (navTl):
-  //   Lines 1 & 3 slide toward each other, line 2 scales out,
-  //   then lines 1 & 3 rotate to form an X. The menu wrapper
-  //   fades in, nav links stagger in from the left end-first,
-  //   and social icons rise into view.
-  //
-  // Close timeline (closeTl):
-  //   Icon returns to its original state immediately while the
-  //   wrapper fades out in parallel, rather than waiting for
-  //   all nav links to exit before the icon moves.
-  //   onComplete resets closeTl to the start so it's ready
-  //   to fire again on the next close.
-  //
-  // The menu wrapper is hidden on initialisation using
-  // visibility: hidden rather than display: none, so GSAP
-  // can still calculate dimensions when animating.
-  //
-  // State is tracked via a boolean flag rather than reading
-  // classes from the DOM, which is more reliable when
-  // timelines are mid-play.
+  // Lines 1 & 3 slide toward each other, line 2 scales out,
+  // then lines 1 & 3 rotate to form an X. The menu wrapper
+  // fades in, nav links stagger in from the left end-first,
+  // and social icons rise into view.
   //
   // The scroll lock is managed in the click handler — locking
   // on open and releasing on close — to prevent the page
@@ -127,21 +110,6 @@ addEventListener("DOMContentLoaded", () => {
   
   if (menuButton && navMenu && lineOne && lineTwo && lineThree) {
   
-    // Track open/closed state via boolean rather than DOM class
-    let menuOpen = false;
-  
-    // Hide menu wrapper on initialisation — Webflow's interaction
-    // previously handled this, so we set it explicitly now that
-    // we own the animation. visibility: hidden rather than
-    // display: none so GSAP can calculate dimensions correctly.
-    gsap.set(navMenu, { opacity: 0, visibility: 'hidden' });
-  
-  
-    // ----------------------------------------------------------
-    // OPEN TIMELINE
-    // Plays forward on menu open. Makes the wrapper visible
-    // before fading it in.
-    // ----------------------------------------------------------
     const navTl = gsap.timeline({ paused: true });
   
     navTl
@@ -149,11 +117,8 @@ addEventListener("DOMContentLoaded", () => {
       .to(lineOne,   { y: 7,  duration: 0.2, ease: "power1.inOut" }, 0)
       .to(lineThree, { y: -7, duration: 0.2, ease: "power1.inOut" }, 0)
   
-      // Make wrapper visible before fading in
-      .add(() => gsap.set(navMenu, { visibility: 'visible' }), 0.1)
-  
       // Menu wrapper fades in
-      .to(navMenu, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 0.1)
+      .from(navMenu, { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 0.1)
   
       // Line 2 scales out
       .to(lineTwo, { scaleX: 0, duration: 0.1, ease: "power1.inOut" }, 0.2)
@@ -176,54 +141,20 @@ addEventListener("DOMContentLoaded", () => {
   
   
     // ----------------------------------------------------------
-    // CLOSE TIMELINE
-    // Plays forward on menu close. The icon returns to its
-    // original state immediately while the wrapper fades out
-    // in parallel. visibility: hidden is applied once the
-    // wrapper has fully faded. onComplete resets the timeline
-    // to the start so it's ready to fire again on next close.
-    // ----------------------------------------------------------
-    const closeTl = gsap.timeline({
-      paused: true,
-      onComplete: () => closeTl.pause(0)
-    });
-  
-    closeTl
-      // Lines 1 & 3 unrotate immediately
-      .to(lineOne,   { rotate: 0, duration: 0.2, ease: "power1.inOut" }, 0)
-      .to(lineThree, { rotate: 0, duration: 0.2, ease: "power1.inOut" }, 0)
-  
-      // Wrapper fades out in parallel with icon returning
-      .to(navMenu, { opacity: 0, duration: 0.3, ease: "power1.inOut" }, 0)
-  
-      // Line 2 scales back in
-      .to(lineTwo, { scaleX: 1, duration: 0.1, ease: "power1.inOut" }, 0.2)
-  
-      // Lines 1 & 3 return to original Y position
-      .to(lineOne,   { y: 0, duration: 0.2, ease: "power1.inOut" }, 0.3)
-      .to(lineThree, { y: 0, duration: 0.2, ease: "power1.inOut" }, 0.3)
-  
-      // Hide wrapper once faded
-      .add(() => gsap.set(navMenu, { visibility: 'hidden' }), 0.3);
-  
-  
-    // ----------------------------------------------------------
     // CLICK HANDLER
-    // Uses a boolean flag to track open/closed state reliably
-    // rather than reading from the DOM. Fires the appropriate
-    // timeline and manages scroll lock on each click.
+    // Plays the timeline on open, reverses on close.
+    // Scroll lock is applied on open and released on close
+    // to prevent the page scrolling behind the menu.
     // ----------------------------------------------------------
     menuButton.addEventListener('click', () => {
-      if (menuOpen) {
-        menuOpen = false;
-        navTl.pause();
-        closeTl.play(0);
+      const isOpen = navMenu.classList.contains('is-open');
+  
+      if (isOpen) {
+        navTl.reverse();
         document.body.style.overflow = '';
         document.documentElement.style.overflow = '';
       } else {
-        menuOpen = true;
-        closeTl.pause();
-        navTl.play(0);
+        navTl.play();
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
       }
