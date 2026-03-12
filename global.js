@@ -195,22 +195,8 @@ addEventListener("DOMContentLoaded", () => {
     // timeline. Scroll lock is applied on open and released on
     // close to prevent the page scrolling behind the menu.
     // ----------------------------------------------------------
-    let menuOpen = false;
-
     menuButton.addEventListener('click', () => {
-      if (menuOpen) {
-        menuOpen = false;
-        navTl.pause();
-        closeTl.play(0);
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
-      } else {
-        menuOpen = true;
-        closeTl.pause();
-        navTl.play(0);
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
-      }
+      console.log('clicked, menuOpen is:', menuOpen);
     });
   
   }
