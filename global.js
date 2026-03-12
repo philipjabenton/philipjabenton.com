@@ -37,50 +37,55 @@ addEventListener("DOMContentLoaded", () => {
   window.addEventListener('resize', setNavHeight);
 
 
-
   // ============================================================
-  // NAV ENTRANCE
-  // Animates the nav into view on page load by sliding it down
-  // from above. Mirrors the Webflow interaction it replaces.
+  // NAV ENTRANCE & HIDE/SHOW ON SCROLL
+  // The entrance animation and scroll hide/show both control
+  // yPercent on the same element, so they must be sequenced —
+  // the scroll behaviour is initialised inside the entrance
+  // animation's onComplete to ensure it only takes over once
+  // the nav has fully arrived in view.
+  //
+  // clearProps: "all" cleans up the entrance animation's inline
+  // styles so the scroll hide/show starts with a clean slate.
   //
   // The delay accounts for other page load animations running
   // in parallel — revisit timing once all entrance animations
   // are ported to GSAP.
+  //
+  // Scroll behaviour:
+  //   direction === -1 = scrolling up   → play (show nav)
+  //   direction === 1  = scrolling down → reverse (hide nav)
   // ============================================================
   gsap.fromTo(nav,
     { yPercent: -100, opacity: 0 },
-    { yPercent: 0, opacity: 1, duration: 0.35, delay: 1.35, ease: "power1.inOut" }
+    {
+      yPercent: 0,
+      opacity: 1,
+      duration: 0.35,
+      delay: 1.35,
+      ease: "power1.inOut",
+      clearProps: "all",
+      onComplete: () => {
+        const showAnim = gsap.from(nav, {
+          yPercent: -100,
+          paused: true,
+          duration: 0.35,
+          ease: "power1.inOut",
+          force3D: true
+        }).progress(1);
+  
+        ScrollTrigger.create({
+          start: "top top",
+          end: "max",
+          onUpdate: (self) => {
+            self.direction === -1 ? showAnim.play() : showAnim.reverse();
+          }
+        });
+      }
+    }
   );
 
-
-  // ============================================================
-  // NAV HIDE/SHOW ON SCROLL DIRECTION
-  // Hides the nav when scrolling down, reveals it when scrolling
-  // up. Uses a GSAP animation that slides the nav out of view
-  // upward (yPercent: -100). The animation is created paused
-  // and already at progress(1) — meaning it starts in the
-  // visible/finished state. ScrollTrigger then plays or reverses
-  // it based on scroll direction:
-  //   direction === -1 = scrolling up  → play (show nav)
-  //   direction === 1  = scrolling down → reverse (hide nav)
-  // ============================================================
-  const showAnim = gsap.from(nav, {
-    yPercent: -100,
-    paused: true,
-    duration: 0.35,
-    ease: "power1.inOut",
-    force3D: true
-  }).progress(1);
-
-  ScrollTrigger.create({
-    start: "top top",
-    end: "max",
-    onUpdate: (self) => {
-      self.direction === -1 ? showAnim.play() : showAnim.reverse();
-    }
-  });
-
-
+ 
   // ============================================================
   // NAV CENTRE SWAP & MARQUEE ROTATOR
   // This section only runs on pages that have a .hero_title
