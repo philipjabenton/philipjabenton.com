@@ -66,63 +66,6 @@ addEventListener("DOMContentLoaded", () => {
 
 
   // ============================================================
-  // PAGE TRANSITIONS — EXIT
-  // Intercepts internal link clicks. Slides the nav up before
-  // navigating to the new URL. Webflow animations handle all
-  // entrance transitions on the new page.
-  //
-  // Ignores: external links, new-tab links, anchor links,
-  // already-active links, and modified clicks (cmd/ctrl).
-  // ============================================================
-  document.addEventListener('click', (e) => {
-    const link = e.target.closest('a');
-    if (!link) return;
-
-    const url = link.getAttribute('href');
-    if (!url) return;
-
-    const isExternal = link.hostname !== window.location.hostname;
-    const isNewTab = link.target === '_blank';
-    const isAnchor = url.startsWith('#');
-    const isModified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
-    const isSamePage = link.href === window.location.href;
-
-    if (isExternal || isNewTab || isAnchor || isModified || isSamePage) return;
-
-    e.preventDefault();
-
-    if (navMenu && navMenu.classList.contains('is-open')) {
-      window.location.href = url;
-      return;
-    }
-
-    const tl = gsap.timeline({
-      delay: 0.15,
-      onComplete: () => window.location.href = url
-    });
-    
-    tl.to(mainWrapper, { opacity: 0, duration: 0.15, ease: "power1.in" })
-      .to(nav, { yPercent: -100, duration: 0.35, ease: "power1.inOut" });
-  });
-
-
-  // ============================================================
-  // PAGE TRANSITIONS — BFCACHE HANDLING
-  // When the user navigates back/forward, the browser may
-  // restore the page from bfcache (back-forward cache) — a
-  // frozen snapshot of the previous page state. This means
-  // DOMContentLoaded doesn't fire and Webflow's animations
-  // don't reinitialise.
-  //
-  // Forcing a reload on bfcache restoration ensures the page
-  // always loads fresh, with all animations running correctly.
-  // ============================================================
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) window.location.reload();
-  });
-
-
-  // ============================================================
   // NAV CENTRE SWAP & MARQUEE ROTATOR
   // This section only runs on pages that have a .hero_title
   // element. On pages without one, the logo sits in the nav
