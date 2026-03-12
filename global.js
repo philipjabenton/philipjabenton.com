@@ -37,6 +37,24 @@ addEventListener("DOMContentLoaded", () => {
   window.addEventListener('resize', setNavHeight);
 
 
+
+  // ============================================================
+  // NAV ENTRANCE
+  // Animates the nav into view on page load by sliding it down
+  // from above. Mirrors the Webflow interaction it replaces.
+  //
+  // The delay accounts for other page load animations running
+  // in parallel — revisit timing once all entrance animations
+  // are ported to GSAP.
+  // ============================================================
+  gsap.from(nav, {
+    yPercent: -100,
+    duration: 0.35,
+    delay: 1.35,
+    ease: "power1.inOut"
+  });
+
+
   // ============================================================
   // NAV HIDE/SHOW ON SCROLL DIRECTION
   // Hides the nav when scrolling down, reveals it when scrolling
