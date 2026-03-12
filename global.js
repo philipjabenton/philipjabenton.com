@@ -78,6 +78,7 @@ addEventListener("DOMContentLoaded", () => {
           start: "top top",
           end: "max",
           onUpdate: (self) => {
+            if (self.getVelocity() === 0) return;
             self.direction === -1 ? showAnim.play() : showAnim.reverse();
           }
         });
