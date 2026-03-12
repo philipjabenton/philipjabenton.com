@@ -86,6 +86,79 @@ addEventListener("DOMContentLoaded", () => {
     }
   );
 
+
+  // ============================================================
+  // MOBILE NAV ANIMATION
+  // Replicates the Webflow 'Nav icon toggle' interaction.
+  // The timeline is created paused and toggled play/reverse
+  // on each click of .nav_icon — matching Webflow's
+  // 'Toggle play/reverse' behaviour.
+  //
+  // Forward (open):
+  //   Lines 1 & 3 slide toward each other, line 2 scales out,
+  //   then lines 1 & 3 rotate to form an X. The menu wrapper
+  //   fades in, nav links stagger in from the left (end-first),
+  //   and social icons rise into view.
+  //
+  // Reverse (close):
+  //   All of the above plays backwards.
+  // ============================================================
+  const lineOne   = document.querySelector('.nav_icon-line.is-one');
+  const lineTwo   = document.querySelector('.nav_icon-line.is-two');
+  const lineThree = document.querySelector('.nav_icon-line.is-three');
+  const navLinks  = document.querySelectorAll('.nav_mobile-links-wrapper .nav_link');
+  const socialMobile = document.querySelector('.social_icons-mobile');
+  
+  if (menuButton && navMenu && lineOne && lineTwo && lineThree) {
+  
+    const navTl = gsap.timeline({ paused: true });
+  
+    // Lines 1 & 3 slide toward each other
+    navTl.to(lineOne,   { y: 7,  duration: 0.2, ease: "power1.inOut" }, 0)
+         .to(lineThree, { y: -7, duration: 0.2, ease: "power1.inOut" }, 0)
+  
+    // Toggle .is-open on the menu wrapper
+         .add(() => navMenu.classList.toggle('is-open'), 0)
+  
+    // Menu wrapper fades in
+         .from(navMenu, { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 0.1)
+  
+    // Line 2 scales out
+         .to(lineTwo, { scaleX: 0, duration: 0.1, ease: "power1.inOut" }, 0.2)
+  
+    // Lines 1 & 3 rotate to form X
+         .to(lineOne,   { rotate: -45, duration: 0.2, ease: "power1.inOut" }, 0.3)
+         .to(lineThree, { rotate:  45, duration: 0.2, ease: "power1.inOut" }, 0.3)
+  
+    // Nav links stagger in from left, end-first
+         .from(navLinks, {
+           opacity: 0,
+           x: -15,
+           duration: 0.35,
+           ease: "power1.inOut",
+           stagger: { each: 0.05, from: "end" }
+         }, 0.5)
+  
+    // Social icons rise into view
+         .from(socialMobile, { opacity: 0, y: 5, duration: 0.1 }, 0.9);
+  
+    // Toggle play/reverse on each click
+    // Also locks/unlocks scroll to prevent page scrolling behind open menu
+    menuButton.addEventListener('click', () => {
+      const isOpen = navMenu.classList.contains('is-open');
+  
+      if (isOpen) {
+        navTl.reverse();
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+      } else {
+        navTl.play();
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+      }
+    });
+  }
+
  
   // ============================================================
   // NAV CENTRE SWAP & MARQUEE ROTATOR
@@ -331,25 +404,5 @@ addEventListener("DOMContentLoaded", () => {
 //    }
 //  });
 
-
-  // ============================================================
-  // MOBILE MENU
-  // Toggles scroll lock on the body and html elements when the
-  // mobile menu is opened or closed, preventing the page from
-  // scrolling behind the open menu.
-  // ============================================================
-  if (!menuButton || !navMenu) return;
-
-  menuButton.addEventListener('click', () => {
-    const isOpen = navMenu.classList.contains('is-open');
-
-    if (isOpen) {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    } else {
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    }
-  });
 
 });
