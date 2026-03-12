@@ -118,6 +118,8 @@ addEventListener("DOMContentLoaded", () => {
   const socialMobile = document.querySelector('.social_icons-mobile');
   
   if (menuButton && navMenu && lineOne && lineTwo && lineThree) {
+
+    let menuOpen = false;
   
     // ----------------------------------------------------------
     // OPEN TIMELINE
@@ -196,7 +198,19 @@ addEventListener("DOMContentLoaded", () => {
     // close to prevent the page scrolling behind the menu.
     // ----------------------------------------------------------
     menuButton.addEventListener('click', () => {
-      console.log('clicked, menuOpen is:', menuOpen);
+      if (menuOpen) {
+        menuOpen = false;
+        navTl.pause();
+        closeTl.play(0);
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+      } else {
+        menuOpen = true;
+        closeTl.pause();
+        navTl.play(0);
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+      }
     });
   
   }
