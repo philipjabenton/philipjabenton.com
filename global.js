@@ -47,6 +47,7 @@ addEventListener("DOMContentLoaded", () => {
   // in parallel — revisit timing once all entrance animations
   // are ported to GSAP.
   // ============================================================
+  gsap.set(nav, { yPercent: -100 });
   gsap.from(nav, {
     yPercent: -100,
     duration: 0.35,
