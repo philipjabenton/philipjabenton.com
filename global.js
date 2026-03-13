@@ -179,6 +179,120 @@ addEventListener("DOMContentLoaded", () => {
 
 
   // ============================================================
+  // MARQUEE ROTATOR — PERSISTENT STATE
+  // The marquee lives in the nav which persists across Barba
+  // transitions, so the rotator state and its event listeners
+  // are declared here at the outer scope rather than inside
+  // initPage. This prevents listeners stacking up on each
+  // transition to a hero page, which caused marquee items to
+  // appear twice before rotating.
+  //
+  // initPage calls startRotator() or resetRotator() as needed.
+  // The listeners guard against running when no rotator is
+  // active (rotateTimer === null).
+  //
+  // Timing variables:
+  //   fadeDuration — how long each transition takes (seconds)
+  //   holdDuration — how long each item stays visible (ms)
+  // ============================================================
+  const marquee  = document.querySelector('.nav_marquee');
+  const logoLink = document.querySelector('.nav_logo-link');
+  const items    = document.querySelectorAll('.nav_marquee-item');
+
+  let current     = 0;
+  let rotateTimer = null;
+  const fadeDuration = 0.5;
+  const holdDuration = 6000;
+
+  // Kills any running tweens, cancels the timer, and snaps
+  // back to the first item at full opacity.
+  // clearProps and opacity are combined in a single gsap.set
+  // call to avoid a flash between clearing and setting.
+  // Also manages pointer-events — only the visible item
+  // receives pointer events, preventing invisible items from
+  // intercepting mouse events on the active item.
+  function resetRotator() {
+    clearTimeout(rotateTimer);
+    rotateTimer = null;
+    gsap.killTweensOf(items);
+    current = 0;
+    items.forEach((item, i) => {
+      gsap.set(item, { clearProps: "all", opacity: i === 0 ? 1 : 0 });
+      item.style.pointerEvents = i === 0 ? 'auto' : 'none';
+    });
+  }
+
+  // Transitions to the next item:
+  // — Current item fades out slowly (fadeDuration * 1.5)
+  //   creating a linger effect before fully disappearing.
+  // — Next item slides up from below (yPercent: 30 → 0)
+  //   and fades in quickly (fadeDuration * 0.5).
+  // — pointer-events are updated so only the incoming
+  //   item is interactive during and after the transition.
+  function rotateMarquee() {
+    const next = (current + 1) % items.length;
+
+    items[current].style.pointerEvents = 'none';
+    items[next].style.pointerEvents = 'auto';
+
+    gsap.to(items[current], { opacity: 0, duration: fadeDuration * 1.5, ease: "power2.out" });
+
+    gsap.fromTo(items[next],
+      { yPercent: 30, opacity: 0 },
+      { yPercent: 0, duration: fadeDuration, ease: "power2.out" }
+    );
+    gsap.to(items[next], { opacity: 1, duration: fadeDuration * 0.5, ease: "power2.out" });
+
+    current = next;
+    rotateTimer = setTimeout(rotateMarquee, holdDuration);
+  }
+
+  // Resumes the rotator from the current item without resetting
+  function resumeRotator() {
+    clearTimeout(rotateTimer);
+    rotateTimer = setTimeout(rotateMarquee, holdDuration);
+  }
+
+  // Resets to item 0 and starts the rotation cycle
+  function startRotator() {
+    resetRotator();
+    rotateTimer = setTimeout(rotateMarquee, holdDuration);
+  }
+
+  // Pause rotation while the user hovers over the marquee,
+  // resume when they move away. Guards against running when
+  // no rotator is active.
+  if (marquee) {
+    marquee.addEventListener('mouseenter', () => {
+      if (rotateTimer === null) return;
+      clearTimeout(rotateTimer);
+      gsap.killTweensOf(items);
+    });
+    marquee.addEventListener('mouseleave', () => {
+      if (rotateTimer === null) return;
+      resumeRotator();
+    });
+  }
+
+  // Pause when the browser tab is hidden, resume from the
+  // current item when they return. Prevents queued transitions
+  // stacking up while hidden. Guards against running when no
+  // rotator is active.
+  document.addEventListener('visibilitychange', () => {
+    if (rotateTimer === null) return;
+    if (document.hidden) {
+      clearTimeout(rotateTimer);
+      gsap.killTweensOf(items);
+    } else {
+      items.forEach((item, i) => {
+        gsap.set(item, { opacity: i === current ? 1 : 0 });
+      });
+      resumeRotator();
+    }
+  });
+
+
+  // ============================================================
   // PAGE INITIALISATION
   // Runs on first load and after every Barba page transition.
   // Kills any page-scoped ScrollTriggers from the previous
@@ -219,17 +333,15 @@ addEventListener("DOMContentLoaded", () => {
     // element. On pages without one, the logo sits in the nav
     // centre permanently with no swap behaviour.
     //
-    // On qualifying pages, the nav centre shows a text rotator
-    // (marquee) while the hero title is visible. When the hero
-    // title scrolls out of view, the marquee is replaced by the
-    // logo. When scrolling back to the top, the marquee drops
-    // back down into view.
+    // On qualifying pages, the nav centre shows the marquee
+    // rotator while the hero title is visible. When the hero
+    // title scrolls out of view, the marquee is replaced by
+    // the logo. When scrolling back to the top, the marquee
+    // drops back down into view.
     //
     // The swap is disabled on tablet and mobile (≤991px).
     // ----------------------------------------------------------
     const heroTitle = scope.querySelector('.hero_title');
-    const marquee   = document.querySelector('.nav_marquee');
-    const logoLink  = document.querySelector('.nav_logo-link');
     const isMobile  = () => window.innerWidth <= 991;
 
     if (heroTitle && marquee && logoLink) {
@@ -239,123 +351,14 @@ addEventListener("DOMContentLoaded", () => {
       // value before the hero page logic runs
       gsap.set(marquee, { clearProps: "display" });
 
-      // --------------------------------------------------------
-      // MARQUEE ITEMS
-      // Grab all marquee items. If there are none, hide the
-      // marquee and clear any GSAP transform from the logo so
-      // it sits in its natural position. The swap behaviour is
-      // skipped entirely — the logo remains visible as normal.
-      //
-      // If there is only one item, the marquee is shown but the
-      // rotator does not start — the single item sits
-      // permanently. The marquee/logo swap on scroll still
-      // works in this case.
-      // --------------------------------------------------------
-      const items = document.querySelectorAll('.nav_marquee-item');
-
+      // If there are no marquee items, hide the marquee and
+      // clear any GSAP transform from the logo so it sits in
+      // its natural position. Skip all swap behaviour.
       if (items.length === 0) {
         gsap.set(marquee, { display: 'none' });
         gsap.set(logoLink, { clearProps: "transform" });
         return;
       }
-
-
-      // --------------------------------------------------------
-      // TEXT ROTATOR
-      // Cycles through .nav_marquee-item elements one at a
-      // time. Each item fades out while the next slides up from
-      // below and fades in. The rotator pauses when the tab is
-      // hidden or when the user hovers over the marquee.
-      //
-      // Timing variables:
-      //   fadeDuration — how long each transition takes (secs)
-      //   holdDuration — how long each item stays visible (ms)
-      // --------------------------------------------------------
-      let current = 0;
-      let rotateTimer = null;
-      const fadeDuration = 0.5;
-      const holdDuration = 6000;
-
-      // Kills any running tweens, cancels the timer, and snaps
-      // back to the first item at full opacity.
-      // Also manages pointer-events on each item — only the
-      // visible item receives pointer events. This prevents
-      // invisible absolutely positioned items (opacity 0) from
-      // sitting on top of the visible item and intercepting
-      // mouse events, which would break hover styles and text
-      // selection on the active item.
-      function resetRotator() {
-        clearTimeout(rotateTimer);
-        gsap.killTweensOf(items);
-        current = 0;
-        items.forEach((item, i) => {
-          gsap.set(item, { clearProps: "all" });
-          gsap.set(item, { opacity: i === 0 ? 1 : 0 });
-          item.style.pointerEvents = i === 0 ? 'auto' : 'none';
-        });
-      }
-
-      // Transitions to the next item:
-      // — Current item fades out slowly (fadeDuration * 1.5)
-      //   creating a linger effect before fully disappearing.
-      // — Next item slides up from below (yPercent: 30 → 0)
-      //   and fades in quickly (fadeDuration * 0.5).
-      // — pointer-events are updated so only the incoming
-      //   item is interactive during and after the transition.
-      function rotateMarquee() {
-        const next = (current + 1) % items.length;
-
-        items[current].style.pointerEvents = 'none';
-        items[next].style.pointerEvents = 'auto';
-
-        gsap.to(items[current], { opacity: 0, duration: fadeDuration * 1.5, ease: "power2.out" });
-
-        gsap.fromTo(items[next],
-          { yPercent: 30, opacity: 0 },
-          { yPercent: 0, duration: fadeDuration, ease: "power2.out" }
-        );
-        gsap.to(items[next], { opacity: 1, duration: fadeDuration * 0.5, ease: "power2.out" });
-
-        current = next;
-        rotateTimer = setTimeout(rotateMarquee, holdDuration);
-      }
-
-      // Resumes the rotator from the current item without resetting
-      function resumeRotator() {
-        clearTimeout(rotateTimer);
-        rotateTimer = setTimeout(rotateMarquee, holdDuration);
-      }
-
-      // Resets to item 0 and starts the rotation cycle
-      function startRotator() {
-        resetRotator();
-        rotateTimer = setTimeout(rotateMarquee, holdDuration);
-      }
-
-      // Pause rotation while the user hovers over the marquee,
-      // resume when they move away
-      marquee.addEventListener('mouseenter', () => {
-        clearTimeout(rotateTimer);
-        gsap.killTweensOf(items);
-      });
-      marquee.addEventListener('mouseleave', () => {
-        resumeRotator();
-      });
-
-      // Pause when the browser tab is hidden, resume from the
-      // current item when they return. Prevents queued
-      // transitions stacking up while hidden.
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          clearTimeout(rotateTimer);
-          gsap.killTweensOf(items);
-        } else {
-          items.forEach((item, i) => {
-            gsap.set(item, { opacity: i === current ? 1 : 0 });
-          });
-          resumeRotator();
-        }
-      });
 
 
       // --------------------------------------------------------
@@ -449,7 +452,9 @@ addEventListener("DOMContentLoaded", () => {
 
     } else {
       // No hero title — hide the marquee and reset yPercent so
-      // state is clean for any subsequent return to a hero page
+      // state is clean for any subsequent return to a hero page.
+      // Also stop the rotator if it was running.
+      resetRotator();
       if (marquee) gsap.set(marquee, { display: 'none', yPercent: 0 });
       if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
     }
@@ -508,7 +513,7 @@ addEventListener("DOMContentLoaded", () => {
   // enter: restores the incoming container opacity, slides the
   //   nav back into view, then reinitialises page-specific JS
   //   via initPage() — passing next.container so element
-  //   queries are scoped to the incoming page only. 
+  //   queries are scoped to the incoming page only.
   //   ScrollTrigger.refresh() runs after initPage() so newly
   //   created ScrollTriggers have their positions calculated
   //   correctly against the new page content.
