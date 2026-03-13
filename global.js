@@ -302,6 +302,42 @@ addEventListener("DOMContentLoaded", () => {
 
 
   // ============================================================
+  // HEAD TAG SYNC
+  // Barba swaps the container but does not update <head> tags
+  // beyond the page title. This function syncs meta tags from
+  // the incoming page's HTML — including description, Open
+  // Graph, and canonical tags — so SEO and social sharing
+  // metadata stays accurate after each transition.
+  //
+  // Called in Barba's enter hook with next.html, which contains
+  // the full HTML of the incoming page as parsed by Barba.
+  // ============================================================
+  function updateHead(nextDocument) {
+    // Update page title
+    document.title = nextDocument.title;
+
+    // Update meta tags by matching on name or property attribute
+    const nextMetas = nextDocument.querySelectorAll('meta');
+    nextMetas.forEach(nextMeta => {
+      const name     = nextMeta.getAttribute('name');
+      const property = nextMeta.getAttribute('property');
+      const selector = name
+        ? `meta[name="${name}"]`
+        : property
+          ? `meta[property="${property}"]`
+          : null;
+
+      if (selector) {
+        const currentMeta = document.querySelector(selector);
+        if (currentMeta) {
+          currentMeta.setAttribute('content', nextMeta.getAttribute('content'));
+        }
+      }
+    });
+  }
+
+
+  // ============================================================
   // PAGE INITIALISATION
   // Runs on first load and after every Barba page transition.
   // Kills any page-scoped ScrollTriggers from the previous
@@ -519,20 +555,19 @@ addEventListener("DOMContentLoaded", () => {
   //   menu animation. Otherwise fades the outgoing container
   //   and slides the nav up, resolving when complete.
   //
-  // enter: restores the incoming container opacity, slides the
-  //   nav back into view, then reinitialises page-specific JS
-  //   via initPage() — passing next.container so element
-  //   queries are scoped to the incoming page only.
-  //   ScrollTrigger.refresh() runs after initPage() so newly
-  //   created ScrollTriggers have their positions calculated
-  //   correctly against the new page content.
+  // enter: syncs head tags from the incoming page, restores
+  //   the incoming container opacity, slides the nav back into
+  //   view, then reinitialises page-specific JS via initPage()
+  //   — passing next.container so element queries are scoped
+  //   to the incoming page only. ScrollTrigger.refresh() runs
+  //   after initPage() so newly created ScrollTriggers have
+  //   their positions calculated correctly against the new
+  //   page content.
   //
   // Note: beforeLeave/afterEnter hooks are not used as they
   // are not reliably fired in this environment. The core
   // leave/enter hooks are used instead.
   // ============================================================
-  barba.use(barbHead);
-  
   barba.init({
     preventRunning: true,
     transitions: [{
@@ -567,6 +602,9 @@ addEventListener("DOMContentLoaded", () => {
       },
 
       enter({ next }) {
+        // Sync head tags from the incoming page
+        updateHead(next.html);
+
         // Scroll to top before reinitialising page content
         window.scrollTo(0, 0);
 
