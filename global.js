@@ -501,6 +501,7 @@ addEventListener("DOMContentLoaded", () => {
   // ============================================================
   barba.init({
     preventRunning: true,
+    prevent: ({ el }) => el.href === window.location.href,
     transitions: [{
       name: 'default',
 
