@@ -235,6 +235,10 @@ addEventListener("DOMContentLoaded", () => {
       // permanently. The marquee/logo swap on scroll still
       // works in this case.
       // --------------------------------------------------------
+
+      // Clear any display:none set by a previous non-hero page
+  gsap.set(marquee, { clearProps: "display" });
+      
       const items = document.querySelectorAll('.nav_marquee-item');
 
       if (items.length === 0) {
