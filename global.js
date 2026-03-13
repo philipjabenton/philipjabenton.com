@@ -451,9 +451,9 @@ addEventListener("DOMContentLoaded", () => {
       }
 
     } else {
-      // No hero title — hide the marquee and reset yPercent so
-      // state is clean for any subsequent return to a hero page.
-      // Also stop the rotator if it was running.
+      // No hero title — stop the rotator, hide the marquee and
+      // reset yPercent so state is clean for any subsequent
+      // return to a hero page.
       resetRotator();
       if (marquee) gsap.set(marquee, { display: 'none', yPercent: 0 });
       if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
@@ -504,11 +504,11 @@ addEventListener("DOMContentLoaded", () => {
   //   one is already in progress — avoids a flash if the user
   //   clicks a link mid-transition.
   //
-  // leave: skips the exit animation if the mobile menu is open
-  //   (user navigated from the mobile nav). Otherwise fades
-  //   the outgoing container and slides the nav up. Returns a
-  //   Promise so Barba waits for the animation to complete
-  //   before swapping the container.
+  // leave: if the mobile menu is open, reverses the nav
+  //   animation, releases the scroll lock, and resolves
+  //   immediately so the new page loads underneath the closing
+  //   menu. Otherwise fades the outgoing container and slides
+  //   the nav up, resolving when the animation completes.
   //
   // enter: restores the incoming container opacity, slides the
   //   nav back into view, then reinitialises page-specific JS
@@ -530,9 +530,14 @@ addEventListener("DOMContentLoaded", () => {
       leave({ current }) {
         return new Promise(resolve => {
 
-          // Skip exit animation if mobile menu is open —
-          // the user navigated via the mobile nav
+          // If mobile menu is open, close it and resolve
+          // immediately — the new page loads underneath the
+          // closing menu animation
           if (menuOpen) {
+            menuOpen = false;
+            navTl.reverse();
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
             resolve();
             return;
           }
