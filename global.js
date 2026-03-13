@@ -2,7 +2,6 @@
 // This code is proprietary and may not be reused or redistributed.
 
 addEventListener("DOMContentLoaded", () => {
- 
 
   // ============================================================
   // INITIALISATION
@@ -15,7 +14,6 @@ addEventListener("DOMContentLoaded", () => {
   const mainWrapper = document.querySelector('.main_wrapper');
   const menuButton = document.querySelector('.nav_icon');
   const navMenu = document.querySelector('.nav_mobile-links-wrapper');
-  
   if (!nav || !navBg) return;
 
 
@@ -45,8 +43,10 @@ addEventListener("DOMContentLoaded", () => {
   // animation's onComplete to ensure it only takes over once
   // the nav has fully arrived in view.
   //
-  // clearProps: "all" cleans up the entrance animation's inline
-  // styles so the scroll hide/show starts with a clean slate.
+  // clearProps: "transform" cleans up only the transform from
+  // the entrance animation so the scroll hide/show starts with
+  // a clean slate, while retaining opacity: 1 as an inline
+  // style to override the CSS opacity: 0 rule.
   //
   // The delay accounts for other page load animations running
   // in parallel — revisit timing once all entrance animations
@@ -73,7 +73,7 @@ addEventListener("DOMContentLoaded", () => {
           ease: "power1.inOut",
           force3D: true
         }).progress(1);
-  
+
         ScrollTrigger.create({
           start: "top top",
           end: "max",
@@ -111,12 +111,12 @@ addEventListener("DOMContentLoaded", () => {
   const lineThree    = document.querySelector('.nav_icon-line.is-three');
   const navLinks     = document.querySelectorAll('.nav_mobile-links-wrapper .nav_link');
   const socialMobile = document.querySelector('.social_icons-mobile');
-  
+
   if (menuButton && navMenu && lineOne && lineTwo && lineThree) {
-  
+
     // Track open/closed state via boolean rather than DOM class
     let menuOpen = false;
-  
+
     // ----------------------------------------------------------
     // TIMELINE
     // Plays forward on open, reverses on close. Position
@@ -124,22 +124,22 @@ addEventListener("DOMContentLoaded", () => {
     // where needed for a natural feel.
     // ----------------------------------------------------------
     const navTl = gsap.timeline({ paused: true });
-  
+
     navTl
       // Lines 1 & 3 slide toward each other
       .to(lineOne,   { y: 7,  duration: 0.2, ease: "power1.inOut" }, 0)
       .to(lineThree, { y: -7, duration: 0.2, ease: "power1.inOut" }, 0)
-  
+
       // Menu wrapper fades in
       .from(navMenu, { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 0.1)
-  
+
       // Line 2 scales out
       .to(lineTwo, { scaleX: 0, duration: 0.1, ease: "power1.inOut" }, 0.2)
-  
+
       // Lines 1 & 3 rotate to form X
       .to(lineOne,   { rotate: -45, duration: 0.2, ease: "power1.inOut" }, 0.3)
       .to(lineThree, { rotate:  45, duration: 0.2, ease: "power1.inOut" }, 0.3)
-  
+
       // Nav links stagger in from left, end-first
       .from(navLinks, {
         opacity: 0,
@@ -148,11 +148,11 @@ addEventListener("DOMContentLoaded", () => {
         ease: "power1.inOut",
         stagger: { each: 0.05, from: "end" }
       }, 0.5)
-  
+
       // Social icons rise into view
       .from(socialMobile, { opacity: 0, y: 5, duration: 0.1 }, 0.9);
-  
-  
+
+
     // ----------------------------------------------------------
     // CLICK HANDLER
     // Uses a boolean flag to track open/closed state reliably
@@ -174,236 +174,229 @@ addEventListener("DOMContentLoaded", () => {
         document.documentElement.style.overflow = 'hidden';
       }
     });
-  
+
   }
- 
- 
+
+
   // ============================================================
-  // NAV CENTRE SWAP & MARQUEE ROTATOR
-  // This section only runs on pages that have a .hero_title
-  // element. On pages without one, the logo sits in the nav
-  // centre permanently with no swap behaviour.
+  // PAGE INITIALISATION
+  // Runs on first load and after every Barba page transition.
+  // Kills any page-scoped ScrollTriggers from the previous
+  // page before reinitialising for the new page.
   //
-  // On qualifying pages, the nav centre shows a text rotator
-  // (marquee) while the hero title is visible. When the hero
-  // title scrolls out of view, the marquee is replaced by the
-  // logo. When scrolling back to the top, the marquee drops
-  // back down into view.
+  // Currently handles:
+  //   - Nav centre swap & marquee rotator
   //
-  // The swap is disabled on tablet and mobile (≤991px).
+  // As page-specific JS files are introduced (e.g. home.js),
+  // they will expose an init() function called from here
+  // based on the Barba namespace.
   // ============================================================
-  const heroTitle = document.querySelector('.hero_title');
-  const marquee = document.querySelector('.nav_marquee');
-  const logoLink = document.querySelector('.nav_logo-link');
-  const isMobile = () => window.innerWidth <= 991;
+  let pageScrollTriggers = [];
 
-  if (heroTitle && marquee && logoLink) {
+  function killPageScrollTriggers() {
+    pageScrollTriggers.forEach(st => st.kill());
+    pageScrollTriggers = [];
+  }
+
+  function initPage(namespace) {
+
+    killPageScrollTriggers();
 
     // ----------------------------------------------------------
-    // MARQUEE ITEMS
-    // Grab all marquee items. If there are none, hide the marquee
-    // and clear any GSAP transform from the logo so it sits in
-    // its natural position. The swap behaviour is skipped entirely
-    // in this case — the logo remains visible as normal.
+    // NAV CENTRE SWAP & MARQUEE ROTATOR
+    // This section only runs on pages that have a .hero_title
+    // element. On pages without one, the logo sits in the nav
+    // centre permanently with no swap behaviour.
     //
-    // If there is only one item, the marquee is shown but the
-    // rotator does not start — the single item sits permanently.
-    // The marquee/logo swap on scroll still works in this case.
-    // ----------------------------------------------------------
-    const items = document.querySelectorAll('.nav_marquee-item');
-
-    if (items.length === 0) {
-      gsap.set(marquee, { display: 'none' });
-      gsap.set(logoLink, { clearProps: "transform" });
-      return;
-    }
-
-
-    // ----------------------------------------------------------
-    // TEXT ROTATOR
-    // Cycles through .nav_marquee-item elements one at a time.
-    // Each item fades out while the next slides up from below
-    // and fades in. The rotator pauses when the tab is hidden
-    // or when the user hovers over the marquee.
+    // On qualifying pages, the nav centre shows a text rotator
+    // (marquee) while the hero title is visible. When the hero
+    // title scrolls out of view, the marquee is replaced by the
+    // logo. When scrolling back to the top, the marquee drops
+    // back down into view.
     //
-    // Timing variables:
-    //   fadeDuration — how long each transition takes (seconds)
-    //   holdDuration — how long each item stays visible (ms)
+    // The swap is disabled on tablet and mobile (≤991px).
     // ----------------------------------------------------------
-    let current = 0;
-    let rotateTimer = null;
-    const fadeDuration = 0.5;
-    const holdDuration = 6000;
+    const heroTitle = document.querySelector('.hero_title');
+    const marquee   = document.querySelector('.nav_marquee');
+    const logoLink  = document.querySelector('.nav_logo-link');
+    const isMobile  = () => window.innerWidth <= 991;
 
-    // Kills any running tweens, cancels the timer, and snaps
-    // back to the first item at full opacity.
-    // Also manages pointer-events on each item — only the
-    // visible item receives pointer events. This prevents
-    // invisible absolutely positioned items (opacity 0) from
-    // sitting on top of the visible item and intercepting
-    // mouse events, which would break hover styles and text
-    // selection on the active item.
-    function resetRotator() {
-      clearTimeout(rotateTimer);
-      gsap.killTweensOf(items);
-      current = 0;
-      items.forEach((item, i) => {
-        gsap.set(item, { opacity: i === 0 ? 1 : 0 });
-        item.style.pointerEvents = i === 0 ? 'auto' : 'none';
-      });
-    }
+    if (heroTitle && marquee && logoLink) {
 
-    // Transitions to the next item:
-    // — Current item fades out slowly (fadeDuration * 1.5)
-    //   creating a linger effect before fully disappearing.
-    // — Next item slides up from below (yPercent: 30 → 0)
-    //   and fades in quickly (fadeDuration * 0.5).
-    // — pointer-events are updated so only the incoming
-    //   item is interactive during and after the transition.
-    function rotateMarquee() {
-      const next = (current + 1) % items.length;
+      // --------------------------------------------------------
+      // MARQUEE ITEMS
+      // Grab all marquee items. If there are none, hide the
+      // marquee and clear any GSAP transform from the logo so
+      // it sits in its natural position. The swap behaviour is
+      // skipped entirely — the logo remains visible as normal.
+      //
+      // If there is only one item, the marquee is shown but the
+      // rotator does not start — the single item sits
+      // permanently. The marquee/logo swap on scroll still
+      // works in this case.
+      // --------------------------------------------------------
+      const items = document.querySelectorAll('.nav_marquee-item');
 
-      items[current].style.pointerEvents = 'none';
-      items[next].style.pointerEvents = 'auto';
+      if (items.length === 0) {
+        gsap.set(marquee, { display: 'none' });
+        gsap.set(logoLink, { clearProps: "transform" });
+        return;
+      }
 
-      gsap.to(items[current], { opacity: 0, duration: fadeDuration * 1.5, ease: "power2.out" });
 
-      gsap.fromTo(items[next],
-        { yPercent: 30, opacity: 0 },
-        { yPercent: 0, duration: fadeDuration, ease: "power2.out" }
-      );
-      gsap.to(items[next], { opacity: 1, duration: fadeDuration * 0.5, ease: "power2.out" });
+      // --------------------------------------------------------
+      // TEXT ROTATOR
+      // Cycles through .nav_marquee-item elements one at a
+      // time. Each item fades out while the next slides up from
+      // below and fades in. The rotator pauses when the tab is
+      // hidden or when the user hovers over the marquee.
+      //
+      // Timing variables:
+      //   fadeDuration — how long each transition takes (secs)
+      //   holdDuration — how long each item stays visible (ms)
+      // --------------------------------------------------------
+      let current = 0;
+      let rotateTimer = null;
+      const fadeDuration = 0.5;
+      const holdDuration = 6000;
 
-      current = next;
-      rotateTimer = setTimeout(rotateMarquee, holdDuration);
-    }
-
-    // Resumes the rotator from the current item without resetting
-    function resumeRotator() {
-      clearTimeout(rotateTimer);
-      rotateTimer = setTimeout(rotateMarquee, holdDuration);
-    }
-
-    // Resets to item 0 and starts the rotation cycle
-    function startRotator() {
-      resetRotator();
-      rotateTimer = setTimeout(rotateMarquee, holdDuration);
-    }
-
-    // Pause rotation while the user hovers over the marquee,
-    // resume when they move away
-    marquee.addEventListener('mouseenter', () => {
-      clearTimeout(rotateTimer);
-      gsap.killTweensOf(items);
-    });
-    marquee.addEventListener('mouseleave', () => {
-      resumeRotator();
-    });
-
-    // Pause when the browser tab is hidden (e.g. user switches
-    // tabs), resume from the current item when they return.
-    // Prevents queued transitions stacking up while hidden.
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
+      function resetRotator() {
         clearTimeout(rotateTimer);
         gsap.killTweensOf(items);
-      } else {
+        current = 0;
         items.forEach((item, i) => {
-          gsap.set(item, { opacity: i === current ? 1 : 0 });
+          gsap.set(item, { opacity: i === 0 ? 1 : 0 });
+          item.style.pointerEvents = i === 0 ? 'auto' : 'none';
         });
-        resumeRotator();
       }
-    });
 
+      function rotateMarquee() {
+        const next = (current + 1) % items.length;
 
-    // ----------------------------------------------------------
-    // INITIAL STATE
-    // On desktop: hide the logo above the nav (yPercent: -100)
-    // so it can slide down into view on scroll. Marquee sits
-    // at its natural position ready to be seen.
-    // On mobile: clear any GSAP transform on the logo so it
-    // sits in its natural CSS position.
-    // ----------------------------------------------------------
-    if (!isMobile()) {
-      gsap.set(logoLink, { yPercent: -100 });
-      gsap.set(marquee, { yPercent: 0 });
-    } else {
-      gsap.set(logoLink, { clearProps: "transform" });
-      gsap.set(marquee, { yPercent: 0 });
-    }
+        items[current].style.pointerEvents = 'none';
+        items[next].style.pointerEvents = 'auto';
 
+        gsap.to(items[current], { opacity: 0, duration: fadeDuration * 1.5, ease: "power2.out" });
 
-    // ----------------------------------------------------------
-    // SCROLL TRIGGER — MARQUEE / LOGO SWAP
-    // Watches the hero title element. Fires when the bottom
-    // edge of the title crosses the top of the viewport.
-    //
-    // onEnter (scrolling down, title leaves viewport):
-    //   Instantly snaps marquee out and logo into position.
-    //   No animation needed — the nav is hidden at this point.
-    //
-    // onLeaveBack (scrolling up, title re-enters viewport):
-    //   Instantly hides the logo, then animates the marquee
-    //   dropping down from above into position. This is the
-    //   one transition the user actually sees.
-    // ----------------------------------------------------------
-    ScrollTrigger.create({
-      trigger: heroTitle,
-      start: "bottom top",
-      onEnter: () => {
-        if (isMobile()) return;
-        gsap.set(marquee, { yPercent: 100 });
-        gsap.set(logoLink, { yPercent: 0 });
-      },
-      onLeaveBack: () => {
-        if (isMobile()) return;
-        gsap.set(logoLink, { yPercent: -100 });
-        gsap.fromTo(marquee,
-          { yPercent: -100 },
-          { yPercent: 0, duration: 0.25, ease: "power2.out" }
+        gsap.fromTo(items[next],
+          { yPercent: 30, opacity: 0 },
+          { yPercent: 0, duration: fadeDuration, ease: "power2.out" }
         );
+        gsap.to(items[next], { opacity: 1, duration: fadeDuration * 0.5, ease: "power2.out" });
+
+        current = next;
+        rotateTimer = setTimeout(rotateMarquee, holdDuration);
       }
-    });
+
+      function resumeRotator() {
+        clearTimeout(rotateTimer);
+        rotateTimer = setTimeout(rotateMarquee, holdDuration);
+      }
+
+      function startRotator() {
+        resetRotator();
+        rotateTimer = setTimeout(rotateMarquee, holdDuration);
+      }
+
+      marquee.addEventListener('mouseenter', () => {
+        clearTimeout(rotateTimer);
+        gsap.killTweensOf(items);
+      });
+      marquee.addEventListener('mouseleave', () => {
+        resumeRotator();
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          clearTimeout(rotateTimer);
+          gsap.killTweensOf(items);
+        } else {
+          items.forEach((item, i) => {
+            gsap.set(item, { opacity: i === current ? 1 : 0 });
+          });
+          resumeRotator();
+        }
+      });
 
 
-    // ----------------------------------------------------------
-    // RESIZE HANDLER — SWAP STATE
-    // When the window is resized, corrects the position of the
-    // marquee and logo based on the current breakpoint and
-    // scroll position, preventing both elements appearing
-    // simultaneously after crossing the mobile breakpoint.
-    // ----------------------------------------------------------
-    window.addEventListener('resize', () => {
-      if (isMobile()) {
-        gsap.set(logoLink, { clearProps: "transform" });
+      // --------------------------------------------------------
+      // INITIAL STATE
+      // On desktop: hide the logo above the nav (yPercent: -100)
+      // so it can slide down into view on scroll. Marquee sits
+      // at its natural position ready to be seen.
+      // On mobile: clear any GSAP transform on the logo so it
+      // sits in its natural CSS position.
+      // --------------------------------------------------------
+      if (!isMobile()) {
+        gsap.set(logoLink, { yPercent: -100 });
         gsap.set(marquee, { yPercent: 0 });
       } else {
-        const heroRect = heroTitle.getBoundingClientRect();
-        const scrolledPast = heroRect.bottom < 0;
-        if (scrolledPast) {
-          gsap.set(logoLink, { yPercent: 0 });
-          gsap.set(marquee, { yPercent: 100 });
-        } else {
-          gsap.set(logoLink, { yPercent: -100 });
-          gsap.set(marquee, { yPercent: 0 });
-        }
+        gsap.set(logoLink, { clearProps: "transform" });
+        gsap.set(marquee, { yPercent: 0 });
       }
-    });
 
-    // Start the rotator if there is more than one item —
-    // startRotator() handles the initial reset internally.
-    // For a single item, call resetRotator() directly to set
-    // the correct initial opacity and pointer-events state
-    // without starting the rotation cycle.
-    if (items.length > 1) {
-      startRotator();
+
+      // --------------------------------------------------------
+      // SCROLL TRIGGER — MARQUEE / LOGO SWAP
+      // Watches the hero title element. Fires when the bottom
+      // edge of the title crosses the top of the viewport.
+      //
+      // Stored in pageScrollTriggers so it can be killed
+      // cleanly on the next Barba transition.
+      // --------------------------------------------------------
+      const swapTrigger = ScrollTrigger.create({
+        trigger: heroTitle,
+        start: "bottom top",
+        onEnter: () => {
+          if (isMobile()) return;
+          gsap.set(marquee, { yPercent: 100 });
+          gsap.set(logoLink, { yPercent: 0 });
+        },
+        onLeaveBack: () => {
+          if (isMobile()) return;
+          gsap.set(logoLink, { yPercent: -100 });
+          gsap.fromTo(marquee,
+            { yPercent: -100 },
+            { yPercent: 0, duration: 0.25, ease: "power2.out" }
+          );
+        }
+      });
+
+      pageScrollTriggers.push(swapTrigger);
+
+
+      // --------------------------------------------------------
+      // RESIZE HANDLER — SWAP STATE
+      // --------------------------------------------------------
+      window.addEventListener('resize', () => {
+        if (isMobile()) {
+          gsap.set(logoLink, { clearProps: "transform" });
+          gsap.set(marquee, { yPercent: 0 });
+        } else {
+          const heroRect = heroTitle.getBoundingClientRect();
+          const scrolledPast = heroRect.bottom < 0;
+          if (scrolledPast) {
+            gsap.set(logoLink, { yPercent: 0 });
+            gsap.set(marquee, { yPercent: 100 });
+          } else {
+            gsap.set(logoLink, { yPercent: -100 });
+            gsap.set(marquee, { yPercent: 0 });
+          }
+        }
+      });
+
+      if (items.length > 1) {
+        startRotator();
+      } else {
+        resetRotator();
+      }
+
     } else {
-      resetRotator();
+      // No hero title — hide the marquee and ensure logo is in natural position
+      if (marquee) gsap.set(marquee, { display: 'none' });
+      if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
     }
-  } else {
-    // No hero title — hide the marquee and ensure logo is in natural position
-    if (marquee) gsap.set(marquee, { display: 'none' });
-    if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
+
   }
 
 
@@ -422,5 +415,66 @@ addEventListener("DOMContentLoaded", () => {
 //    }
 //  });
 
+
+  // ============================================================
+  // BARBA INIT
+  // Intercepts internal link navigation and runs transitions
+  // between pages. The nav and footer persist untouched —
+  // only .main_wrapper is swapped on each transition.
+  //
+  // beforeLeave: kills page-scoped ScrollTriggers and slides
+  //   the nav up. If the mobile menu is open, navigation is
+  //   allowed but without the exit animation.
+  //
+  // afterEnter: scrolls to the top, refreshes ScrollTrigger
+  //   so it recalculates positions for the new page, then
+  //   reinitialises page-specific JS via initPage().
+  // ============================================================
+  barba.init({
+    transitions: [{
+      name: 'default',
+
+      beforeLeave({ current }) {
+        return new Promise(resolve => {
+
+          // Skip exit animation if mobile menu is open
+          if (menuButton && navMenu && navMenu.classList.contains('is-open')) {
+            resolve();
+            return;
+          }
+
+          // Slide nav up and fade content out before navigating
+          const tl = gsap.timeline({
+            delay: 0.15,
+            onComplete: resolve
+          });
+
+          tl.to(mainWrapper, { opacity: 0, duration: 0.15, ease: "power2.in" })
+            .to(nav, { yPercent: -100, duration: 0.35, ease: "power2.inOut" });
+
+        });
+      },
+
+      afterEnter({ next }) {
+        window.scrollTo(0, 0);
+        ScrollTrigger.refresh();
+        initPage(next.namespace);
+
+        // Slide nav back in on the new page
+        gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
+
+        // Restore main wrapper opacity
+        if (mainWrapper) gsap.set(next.container, { opacity: 1 });
+      }
+    }]
+  });
+
+
+  // ============================================================
+  // FIRST PAGE LOAD
+  // Runs initPage() on the initial load so page-specific JS
+  // fires correctly before any Barba transition has occurred.
+  // ============================================================
+  initPage(document.querySelector('[data-barba="container"]')?.dataset.barbaNamespace);
 
 });
