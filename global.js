@@ -184,6 +184,13 @@ addEventListener("DOMContentLoaded", () => {
   // Kills any page-scoped ScrollTriggers from the previous
   // page before reinitialising for the new page.
   //
+  // Accepts an optional container argument — when called from
+  // Barba's enter hook, next.container is passed so that
+  // element queries are scoped to the incoming page only.
+  // This prevents stale references to elements in the outgoing
+  // container, which remains briefly in the DOM during the
+  // transition while both containers are present.
+  //
   // Currently handles:
   //   - Nav centre swap & marquee rotator
   //
@@ -198,9 +205,13 @@ addEventListener("DOMContentLoaded", () => {
     pageScrollTriggers = [];
   }
 
-  function initPage(namespace) {
+  function initPage(namespace, container) {
 
     killPageScrollTriggers();
+
+    // Scope element queries to the incoming container if
+    // provided, otherwise fall back to the full document
+    const scope = container || document;
 
     // ----------------------------------------------------------
     // NAV CENTRE SWAP & MARQUEE ROTATOR
@@ -216,7 +227,7 @@ addEventListener("DOMContentLoaded", () => {
     //
     // The swap is disabled on tablet and mobile (≤991px).
     // ----------------------------------------------------------
-    const heroTitle = document.querySelector('.hero_title');
+    const heroTitle = scope.querySelector('.hero_title');
     const marquee   = document.querySelector('.nav_marquee');
     const logoLink  = document.querySelector('.nav_logo-link');
     const isMobile  = () => window.innerWidth <= 991;
@@ -436,9 +447,8 @@ addEventListener("DOMContentLoaded", () => {
       }
 
     } else {
-      // No hero title — hide the marquee and reset logo and
-      // marquee yPercent so state is clean for any subsequent
-      // return to a hero page
+      // No hero title — hide the marquee and reset yPercent so
+      // state is clean for any subsequent return to a hero page
       if (marquee) gsap.set(marquee, { display: 'none', yPercent: 0 });
       if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
     }
@@ -468,6 +478,10 @@ addEventListener("DOMContentLoaded", () => {
   // between pages. The nav and footer persist untouched —
   // only .main_wrapper is swapped on each transition.
   //
+  // preventRunning: true prevents a new transition firing while
+  //   one is already in progress — avoids a flash if the user
+  //   clicks the current page link mid-transition.
+  //
   // leave: skips the exit animation if the mobile menu is open
   //   (user navigated from the mobile nav). Otherwise fades
   //   the outgoing container and slides the nav up. Returns a
@@ -477,13 +491,16 @@ addEventListener("DOMContentLoaded", () => {
   // enter: scrolls to the top, refreshes ScrollTrigger so it
   //   recalculates positions for the new page content, slides
   //   the nav back into view, restores container opacity, then
-  //   reinitialises page-specific JS via initPage().
+  //   reinitialises page-specific JS via initPage() — passing
+  //   next.container so element queries are scoped to the
+  //   incoming page only.
   //
   // Note: beforeLeave/afterEnter hooks are not used as they
   // are not reliably fired in this environment. The core
   // leave/enter hooks are used instead.
   // ============================================================
   barba.init({
+    preventRunning: true,
     transitions: [{
       name: 'default',
 
@@ -522,8 +539,9 @@ addEventListener("DOMContentLoaded", () => {
         // Restore incoming container opacity
         gsap.set(next.container, { opacity: 1 });
 
-        // Reinitialise page-specific JS for the new page
-        initPage(next.namespace);
+        // Reinitialise page-specific JS, scoped to the
+        // incoming container to avoid stale DOM references
+        initPage(next.namespace, next.container);
       }
 
     }]
@@ -534,8 +552,10 @@ addEventListener("DOMContentLoaded", () => {
   // FIRST PAGE LOAD
   // Runs initPage() on the initial load so page-specific JS
   // fires correctly before any Barba transition has occurred.
+  // The container element is passed to scope element queries
+  // consistently with how Barba calls initPage on transition.
   // ============================================================
   const container = document.querySelector('[data-barba="container"]');
-  initPage(container?.dataset.barbaNamespace);
+  initPage(container?.dataset.barbaNamespace, container);
 
 });
