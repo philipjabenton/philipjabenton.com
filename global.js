@@ -463,6 +463,7 @@ addEventListener("DOMContentLoaded", () => {
   //   slides the nav back into view, restores container opacity,
   //   then reinitialises page-specific JS via initPage().
   // ============================================================
+  console.log('barba init firing');
   barba.init({
     transitions: [{
       name: 'default',
