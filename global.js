@@ -312,11 +312,12 @@ addEventListener("DOMContentLoaded", () => {
   // Called in Barba's enter hook with next.html, which contains
   // the full HTML of the incoming page as parsed by Barba.
   // ============================================================
-  function updateHead(nextDocument) {
-    // Update page title
+  function updateHead(nextHtml) {
+    const parser = new DOMParser();
+    const nextDocument = parser.parseFromString(nextHtml, 'text/html');
+  
     document.title = nextDocument.title;
-
-    // Update meta tags by matching on name or property attribute
+  
     const nextMetas = nextDocument.querySelectorAll('meta');
     nextMetas.forEach(nextMeta => {
       const name     = nextMeta.getAttribute('name');
@@ -326,7 +327,7 @@ addEventListener("DOMContentLoaded", () => {
         : property
           ? `meta[property="${property}"]`
           : null;
-
+  
       if (selector) {
         const currentMeta = document.querySelector(selector);
         if (currentMeta) {
