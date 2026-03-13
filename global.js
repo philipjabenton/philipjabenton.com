@@ -468,43 +468,35 @@ addEventListener("DOMContentLoaded", () => {
       name: 'default',
 
       beforeLeave({ current }) {
-        return new Promise(resolve => {
+  console.log('beforeLeave fired, menuOpen:', menuOpen);
+  return new Promise(resolve => {
+    if (menuOpen) {
+      console.log('skipping — menu is open');
+      resolve();
+      return;
+    }
 
-          // Skip exit animation if mobile menu is open —
-          // the user navigated via the mobile nav
-          if (menuOpen) {
-            resolve();
-            return;
-          }
-
-          // Fade outgoing container and slide nav up
-          const tl = gsap.timeline({
-            delay: 0.15,
-            onComplete: resolve
-          });
-
-          tl.to(current.container, { opacity: 0, duration: 0.15, ease: "power2.in" })
-            .to(nav, { yPercent: -100, duration: 0.35, ease: "power2.inOut" });
-
-        });
-      },
-
-      afterEnter({ next }) {
-        // Scroll to top before reinitialising page content
-        window.scrollTo(0, 0);
-
-        // Recalculate ScrollTrigger positions for new page
-        ScrollTrigger.refresh();
-
-        // Slide nav back into view
-        gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
-
-        // Restore incoming container opacity
-        gsap.set(next.container, { opacity: 1 });
-
-        // Reinitialise page-specific JS for the new page
-        initPage(next.namespace);
+    const tl = gsap.timeline({
+      delay: 0.15,
+      onComplete: () => {
+        console.log('beforeLeave animation complete');
+        resolve();
       }
+    });
+
+    tl.to(current.container, { opacity: 0, duration: 0.15, ease: "power2.in" })
+      .to(nav, { yPercent: -100, duration: 0.35, ease: "power2.inOut" });
+  });
+},
+
+afterEnter({ next }) {
+  console.log('afterEnter fired, namespace:', next.namespace);
+  window.scrollTo(0, 0);
+  ScrollTrigger.refresh();
+  gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
+  gsap.set(next.container, { opacity: 1 });
+  initPage(next.namespace);
+}
 
     }]
   });
