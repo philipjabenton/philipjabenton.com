@@ -473,6 +473,22 @@ addEventListener("DOMContentLoaded", () => {
 
 
   // ============================================================
+  // PREVENT SAME-PAGE NAVIGATION
+  // Intercepts clicks on links that match the current URL and
+  // cancels them entirely — preventing a full page reload.
+  // Barba's prevent option alone is not sufficient as it only
+  // stops Barba handling the link, not the browser following it.
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (!link) return;
+    if (link.href === window.location.href) {
+      e.preventDefault();
+    }
+  });
+
+
+  // ============================================================
   // BARBA INIT
   // Intercepts internal link navigation and runs transitions
   // between pages. The nav and footer persist untouched —
@@ -501,7 +517,6 @@ addEventListener("DOMContentLoaded", () => {
   // ============================================================
   barba.init({
     preventRunning: true,
-    prevent: ({ el }) => el.href === window.location.href,
     transitions: [{
       name: 'default',
 
