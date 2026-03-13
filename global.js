@@ -496,7 +496,7 @@ addEventListener("DOMContentLoaded", () => {
   //
   // preventRunning: true prevents a new transition firing while
   //   one is already in progress — avoids a flash if the user
-  //   clicks the current page link mid-transition.
+  //   clicks a link mid-transition.
   //
   // leave: skips the exit animation if the mobile menu is open
   //   (user navigated from the mobile nav). Otherwise fades
@@ -504,12 +504,13 @@ addEventListener("DOMContentLoaded", () => {
   //   Promise so Barba waits for the animation to complete
   //   before swapping the container.
   //
-  // enter: scrolls to the top, refreshes ScrollTrigger so it
-  //   recalculates positions for the new page content, slides
-  //   the nav back into view, restores container opacity, then
-  //   reinitialises page-specific JS via initPage() — passing
-  //   next.container so element queries are scoped to the
-  //   incoming page only.
+  // enter: restores the incoming container opacity, slides the
+  //   nav back into view, then reinitialises page-specific JS
+  //   via initPage() — passing next.container so element
+  //   queries are scoped to the incoming page only. 
+  //   ScrollTrigger.refresh() runs after initPage() so newly
+  //   created ScrollTriggers have their positions calculated
+  //   correctly against the new page content.
   //
   // Note: beforeLeave/afterEnter hooks are not used as they
   // are not reliably fired in this environment. The core
@@ -546,18 +547,19 @@ addEventListener("DOMContentLoaded", () => {
         // Scroll to top before reinitialising page content
         window.scrollTo(0, 0);
 
-        // Recalculate ScrollTrigger positions for new page
-        ScrollTrigger.refresh();
+        // Restore incoming container opacity
+        gsap.set(next.container, { opacity: 1 });
 
         // Slide nav back into view
         gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
 
-        // Restore incoming container opacity
-        gsap.set(next.container, { opacity: 1 });
-
         // Reinitialise page-specific JS, scoped to the
         // incoming container to avoid stale DOM references
         initPage(next.namespace, next.container);
+
+        // Refresh after initPage so newly created ScrollTriggers
+        // have their positions calculated correctly
+        ScrollTrigger.refresh();
       }
 
     }]
