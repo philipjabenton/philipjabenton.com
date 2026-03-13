@@ -289,6 +289,7 @@ addEventListener("DOMContentLoaded", () => {
         gsap.killTweensOf(items);
         current = 0;
         items.forEach((item, i) => {
+          gsap.set(item, { clearProps: "all" });
           gsap.set(item, { opacity: i === 0 ? 1 : 0 });
           item.style.pointerEvents = i === 0 ? 'auto' : 'none';
         });
