@@ -466,14 +466,32 @@ addEventListener("DOMContentLoaded", () => {
   barba.init({
   transitions: [{
     name: 'default',
-    leave() {
-      console.log('leave fired');
-      return gsap.to(nav, { yPercent: -100, duration: 0.35 });
+
+    leave({ current }) {
+      return new Promise(resolve => {
+        if (menuOpen) {
+          resolve();
+          return;
+        }
+
+        const tl = gsap.timeline({
+          delay: 0.15,
+          onComplete: resolve
+        });
+
+        tl.to(current.container, { opacity: 0, duration: 0.15, ease: "power2.in" })
+          .to(nav, { yPercent: -100, duration: 0.35, ease: "power2.inOut" });
+      });
     },
-    enter() {
-      console.log('enter fired');
-      return gsap.to(nav, { yPercent: 0, duration: 0.35 });
+
+    enter({ next }) {
+      window.scrollTo(0, 0);
+      ScrollTrigger.refresh();
+      gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
+      gsap.set(next.container, { opacity: 1 });
+      initPage(next.namespace);
     }
+
   }]
 });
 
