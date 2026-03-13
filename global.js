@@ -463,44 +463,19 @@ addEventListener("DOMContentLoaded", () => {
   //   slides the nav back into view, restores container opacity,
   //   then reinitialises page-specific JS via initPage().
   // ============================================================
-  console.log('barba init firing');
   barba.init({
-    transitions: [{
-      name: 'default',
-
-      beforeLeave({ current }) {
-  console.log('beforeLeave fired, menuOpen:', menuOpen);
-  return new Promise(resolve => {
-    if (menuOpen) {
-      console.log('skipping — menu is open');
-      resolve();
-      return;
+  transitions: [{
+    name: 'default',
+    leave() {
+      console.log('leave fired');
+      return gsap.to(nav, { yPercent: -100, duration: 0.35 });
+    },
+    enter() {
+      console.log('enter fired');
+      return gsap.to(nav, { yPercent: 0, duration: 0.35 });
     }
-
-    const tl = gsap.timeline({
-      delay: 0.15,
-      onComplete: () => {
-        console.log('beforeLeave animation complete');
-        resolve();
-      }
-    });
-
-    tl.to(current.container, { opacity: 0, duration: 0.15, ease: "power2.in" })
-      .to(nav, { yPercent: -100, duration: 0.35, ease: "power2.inOut" });
-  });
-},
-
-afterEnter({ next }) {
-  console.log('afterEnter fired, namespace:', next.namespace);
-  window.scrollTo(0, 0);
-  ScrollTrigger.refresh();
-  gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
-  gsap.set(next.container, { opacity: 1 });
-  initPage(next.namespace);
-}
-
-    }]
-  });
+  }]
+});
 
 
   // ============================================================
