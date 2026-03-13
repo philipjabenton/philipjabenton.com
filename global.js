@@ -9,12 +9,15 @@ addEventListener("DOMContentLoaded", () => {
   // Grab the nav component and its background element.
   // If either is missing, stop here — nothing else will work.
   // ============================================================
-  const nav = document.querySelector('.nav_component');
-  const navBg = document.querySelector('.nav_bg');
-  const mainWrapper = document.querySelector('.main_wrapper');
+  const nav      = document.querySelector('.nav_component');
+  const navBg    = document.querySelector('.nav_bg');
   const menuButton = document.querySelector('.nav_icon');
-  const navMenu = document.querySelector('.nav_mobile-links-wrapper');
+  const navMenu  = document.querySelector('.nav_mobile-links-wrapper');
   if (!nav || !navBg) return;
+
+  // Track mobile menu open/closed state at the outer scope so
+  // Barba's beforeLeave hook can read it without class checks
+  let menuOpen = false;
 
 
   // ============================================================
@@ -98,9 +101,9 @@ addEventListener("DOMContentLoaded", () => {
   // fades in, nav links stagger in from the left end-first,
   // and social icons rise into view.
   //
-  // State is tracked via a boolean flag rather than reading
-  // classes from the DOM, which is more reliable when the
-  // timeline is mid-play.
+  // State is tracked via the menuOpen boolean declared at the
+  // outer scope — readable by Barba's beforeLeave hook to
+  // skip the exit animation when the menu is open.
   //
   // The scroll lock is managed in the click handler — locking
   // on open and releasing on close — to prevent the page
@@ -113,9 +116,6 @@ addEventListener("DOMContentLoaded", () => {
   const socialMobile = document.querySelector('.social_icons-mobile');
 
   if (menuButton && navMenu && lineOne && lineTwo && lineThree) {
-
-    // Track open/closed state via boolean rather than DOM class
-    let menuOpen = false;
 
     // ----------------------------------------------------------
     // TIMELINE
@@ -155,11 +155,11 @@ addEventListener("DOMContentLoaded", () => {
 
     // ----------------------------------------------------------
     // CLICK HANDLER
-    // Uses a boolean flag to track open/closed state reliably
-    // rather than reading from the DOM. Plays the timeline on
-    // open, reverses on close. Scroll lock is applied on open
-    // and released on close to prevent the page scrolling
-    // behind the open menu.
+    // Uses the outer-scope menuOpen boolean to track state
+    // reliably rather than reading from the DOM. Plays the
+    // timeline on open, reverses on close. Scroll lock is
+    // applied on open and released on close to prevent the
+    // page scrolling behind the open menu.
     // ----------------------------------------------------------
     menuButton.addEventListener('click', () => {
       if (menuOpen) {
@@ -260,6 +260,10 @@ addEventListener("DOMContentLoaded", () => {
       const fadeDuration = 0.5;
       const holdDuration = 6000;
 
+      // Kills any running tweens, cancels the timer, and snaps
+      // back to the first item at full opacity.
+      // Also manages pointer-events on each item — only the
+      // visible item receives pointer events.
       function resetRotator() {
         clearTimeout(rotateTimer);
         gsap.killTweensOf(items);
@@ -270,6 +274,11 @@ addEventListener("DOMContentLoaded", () => {
         });
       }
 
+      // Transitions to the next item:
+      // — Current item fades out slowly (fadeDuration * 1.5)
+      //   creating a linger effect before fully disappearing.
+      // — Next item slides up from below (yPercent: 30 → 0)
+      //   and fades in quickly (fadeDuration * 0.5).
       function rotateMarquee() {
         const next = (current + 1) % items.length;
 
@@ -288,16 +297,20 @@ addEventListener("DOMContentLoaded", () => {
         rotateTimer = setTimeout(rotateMarquee, holdDuration);
       }
 
+      // Resumes the rotator from the current item without resetting
       function resumeRotator() {
         clearTimeout(rotateTimer);
         rotateTimer = setTimeout(rotateMarquee, holdDuration);
       }
 
+      // Resets to item 0 and starts the rotation cycle
       function startRotator() {
         resetRotator();
         rotateTimer = setTimeout(rotateMarquee, holdDuration);
       }
 
+      // Pause rotation while the user hovers over the marquee,
+      // resume when they move away
       marquee.addEventListener('mouseenter', () => {
         clearTimeout(rotateTimer);
         gsap.killTweensOf(items);
@@ -306,6 +319,9 @@ addEventListener("DOMContentLoaded", () => {
         resumeRotator();
       });
 
+      // Pause when the browser tab is hidden, resume from the
+      // current item when they return. Prevents queued
+      // transitions stacking up while hidden.
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
           clearTimeout(rotateTimer);
@@ -341,6 +357,13 @@ addEventListener("DOMContentLoaded", () => {
       // Watches the hero title element. Fires when the bottom
       // edge of the title crosses the top of the viewport.
       //
+      // onEnter (scrolling down, title leaves viewport):
+      //   Instantly snaps marquee out and logo into position.
+      //
+      // onLeaveBack (scrolling up, title re-enters viewport):
+      //   Instantly hides the logo, then animates the marquee
+      //   dropping down from above into position.
+      //
       // Stored in pageScrollTriggers so it can be killed
       // cleanly on the next Barba transition.
       // --------------------------------------------------------
@@ -367,6 +390,10 @@ addEventListener("DOMContentLoaded", () => {
 
       // --------------------------------------------------------
       // RESIZE HANDLER — SWAP STATE
+      // When the window is resized, corrects the position of
+      // the marquee and logo based on the current breakpoint
+      // and scroll position, preventing both elements appearing
+      // simultaneously after crossing the mobile breakpoint.
       // --------------------------------------------------------
       window.addEventListener('resize', () => {
         if (isMobile()) {
@@ -385,6 +412,10 @@ addEventListener("DOMContentLoaded", () => {
         }
       });
 
+      // Start the rotator if there is more than one item.
+      // For a single item, call resetRotator() directly to set
+      // the correct initial opacity and pointer-events state
+      // without starting the rotation cycle.
       if (items.length > 1) {
         startRotator();
       } else {
@@ -392,7 +423,8 @@ addEventListener("DOMContentLoaded", () => {
       }
 
     } else {
-      // No hero title — hide the marquee and ensure logo is in natural position
+      // No hero title — hide the marquee and ensure logo is
+      // in its natural position
       if (marquee) gsap.set(marquee, { display: 'none' });
       if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
     }
@@ -422,13 +454,14 @@ addEventListener("DOMContentLoaded", () => {
   // between pages. The nav and footer persist untouched —
   // only .main_wrapper is swapped on each transition.
   //
-  // beforeLeave: kills page-scoped ScrollTriggers and slides
-  //   the nav up. If the mobile menu is open, navigation is
-  //   allowed but without the exit animation.
+  // beforeLeave: skips the exit animation if the mobile menu
+  //   is open (user navigated from the mobile nav). Otherwise
+  //   fades the outgoing container and slides the nav up.
   //
   // afterEnter: scrolls to the top, refreshes ScrollTrigger
-  //   so it recalculates positions for the new page, then
-  //   reinitialises page-specific JS via initPage().
+  //   so it recalculates positions for the new page content,
+  //   slides the nav back into view, restores container opacity,
+  //   then reinitialises page-specific JS via initPage().
   // ============================================================
   barba.init({
     transitions: [{
@@ -437,35 +470,42 @@ addEventListener("DOMContentLoaded", () => {
       beforeLeave({ current }) {
         return new Promise(resolve => {
 
-          // Skip exit animation if mobile menu is open
-          if (menuButton && navMenu && navMenu.classList.contains('is-open')) {
+          // Skip exit animation if mobile menu is open —
+          // the user navigated via the mobile nav
+          if (menuOpen) {
             resolve();
             return;
           }
 
-          // Slide nav up and fade content out before navigating
+          // Fade outgoing container and slide nav up
           const tl = gsap.timeline({
             delay: 0.15,
             onComplete: resolve
           });
 
-          tl.to(mainWrapper, { opacity: 0, duration: 0.15, ease: "power2.in" })
+          tl.to(current.container, { opacity: 0, duration: 0.15, ease: "power2.in" })
             .to(nav, { yPercent: -100, duration: 0.35, ease: "power2.inOut" });
 
         });
       },
 
       afterEnter({ next }) {
+        // Scroll to top before reinitialising page content
         window.scrollTo(0, 0);
-        ScrollTrigger.refresh();
-        initPage(next.namespace);
 
-        // Slide nav back in on the new page
+        // Recalculate ScrollTrigger positions for new page
+        ScrollTrigger.refresh();
+
+        // Slide nav back into view
         gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
 
-        // Restore main wrapper opacity
-        if (mainWrapper) gsap.set(next.container, { opacity: 1 });
+        // Restore incoming container opacity
+        gsap.set(next.container, { opacity: 1 });
+
+        // Reinitialise page-specific JS for the new page
+        initPage(next.namespace);
       }
+
     }]
   });
 
@@ -475,6 +515,7 @@ addEventListener("DOMContentLoaded", () => {
   // Runs initPage() on the initial load so page-specific JS
   // fires correctly before any Barba transition has occurred.
   // ============================================================
-  initPage(document.querySelector('[data-barba="container"]')?.dataset.barbaNamespace);
+  const container = document.querySelector('[data-barba="container"]');
+  initPage(container?.dataset.barbaNamespace);
 
 });
