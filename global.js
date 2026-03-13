@@ -16,8 +16,11 @@ addEventListener("DOMContentLoaded", () => {
   if (!nav || !navBg) return;
 
   // Track mobile menu open/closed state at the outer scope so
-  // Barba's leave hook can read it without class checks
+  // Barba's leave hook can read it without class checks.
+  // navTl is declared here so Barba's leave hook can call
+  // reverse() on it when navigating from the mobile menu.
   let menuOpen = false;
+  let navTl    = null;
 
 
   // ============================================================
@@ -101,6 +104,11 @@ addEventListener("DOMContentLoaded", () => {
   // fades in, nav links stagger in from the left end-first,
   // and social icons rise into view.
   //
+  // navTl is assigned at the outer scope so Barba's leave hook
+  // can call reverse() on it when the user navigates while the
+  // mobile menu is open — allowing the new page to load
+  // underneath the closing menu animation.
+  //
   // State is tracked via the menuOpen boolean declared at the
   // outer scope — readable by Barba's leave hook to skip the
   // exit animation when the mobile menu is open.
@@ -119,11 +127,12 @@ addEventListener("DOMContentLoaded", () => {
 
     // ----------------------------------------------------------
     // TIMELINE
+    // Assigned to the outer-scope navTl so Barba can access it.
     // Plays forward on open, reverses on close. Position
     // parameters control the sequencing — overlapping tweens
     // where needed for a natural feel.
     // ----------------------------------------------------------
-    const navTl = gsap.timeline({ paused: true });
+    navTl = gsap.timeline({ paused: true });
 
     navTl
       // Lines 1 & 3 slide toward each other
@@ -505,10 +514,10 @@ addEventListener("DOMContentLoaded", () => {
   //   clicks a link mid-transition.
   //
   // leave: if the mobile menu is open, reverses the nav
-  //   animation, releases the scroll lock, and resolves
+  //   animation and releases the scroll lock, then resolves
   //   immediately so the new page loads underneath the closing
-  //   menu. Otherwise fades the outgoing container and slides
-  //   the nav up, resolving when the animation completes.
+  //   menu animation. Otherwise fades the outgoing container
+  //   and slides the nav up, resolving when complete.
   //
   // enter: restores the incoming container opacity, slides the
   //   nav back into view, then reinitialises page-specific JS
@@ -532,10 +541,11 @@ addEventListener("DOMContentLoaded", () => {
 
           // If mobile menu is open, close it and resolve
           // immediately — the new page loads underneath the
-          // closing menu animation
+          // closing menu animation. Guard against navTl being
+          // null if the mobile nav elements were not found.
           if (menuOpen) {
             menuOpen = false;
-            navTl.reverse();
+            if (navTl) navTl.reverse();
             document.body.style.overflow = '';
             document.documentElement.style.overflow = '';
             resolve();
