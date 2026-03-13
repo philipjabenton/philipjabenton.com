@@ -531,7 +531,7 @@ addEventListener("DOMContentLoaded", () => {
   // are not reliably fired in this environment. The core
   // leave/enter hooks are used instead.
   // ============================================================
-  barba.use(barbsHead);
+  barba.use(barbHead);
   
   barba.init({
     preventRunning: true,
