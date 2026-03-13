@@ -9,14 +9,14 @@ addEventListener("DOMContentLoaded", () => {
   // Grab the nav component and its background element.
   // If either is missing, stop here — nothing else will work.
   // ============================================================
-  const nav      = document.querySelector('.nav_component');
-  const navBg    = document.querySelector('.nav_bg');
+  const nav        = document.querySelector('.nav_component');
+  const navBg      = document.querySelector('.nav_bg');
   const menuButton = document.querySelector('.nav_icon');
-  const navMenu  = document.querySelector('.nav_mobile-links-wrapper');
+  const navMenu    = document.querySelector('.nav_mobile-links-wrapper');
   if (!nav || !navBg) return;
 
   // Track mobile menu open/closed state at the outer scope so
-  // Barba's beforeLeave hook can read it without class checks
+  // Barba's leave hook can read it without class checks
   let menuOpen = false;
 
 
@@ -102,8 +102,8 @@ addEventListener("DOMContentLoaded", () => {
   // and social icons rise into view.
   //
   // State is tracked via the menuOpen boolean declared at the
-  // outer scope — readable by Barba's beforeLeave hook to
-  // skip the exit animation when the menu is open.
+  // outer scope — readable by Barba's leave hook to skip the
+  // exit animation when the mobile menu is open.
   //
   // The scroll lock is managed in the click handler — locking
   // on open and releasing on close — to prevent the page
@@ -223,6 +223,11 @@ addEventListener("DOMContentLoaded", () => {
 
     if (heroTitle && marquee && logoLink) {
 
+      // Clear any display:none set by a previous non-hero page
+      // so the marquee is always reset to its natural display
+      // value before the hero page logic runs
+      gsap.set(marquee, { clearProps: "display" });
+
       // --------------------------------------------------------
       // MARQUEE ITEMS
       // Grab all marquee items. If there are none, hide the
@@ -235,10 +240,6 @@ addEventListener("DOMContentLoaded", () => {
       // permanently. The marquee/logo swap on scroll still
       // works in this case.
       // --------------------------------------------------------
-
-      // Clear any display:none set by a previous non-hero page
-  gsap.set(marquee, { clearProps: "display" });
-      
       const items = document.querySelectorAll('.nav_marquee-item');
 
       if (items.length === 0) {
@@ -267,7 +268,11 @@ addEventListener("DOMContentLoaded", () => {
       // Kills any running tweens, cancels the timer, and snaps
       // back to the first item at full opacity.
       // Also manages pointer-events on each item — only the
-      // visible item receives pointer events.
+      // visible item receives pointer events. This prevents
+      // invisible absolutely positioned items (opacity 0) from
+      // sitting on top of the visible item and intercepting
+      // mouse events, which would break hover styles and text
+      // selection on the active item.
       function resetRotator() {
         clearTimeout(rotateTimer);
         gsap.killTweensOf(items);
@@ -283,6 +288,8 @@ addEventListener("DOMContentLoaded", () => {
       //   creating a linger effect before fully disappearing.
       // — Next item slides up from below (yPercent: 30 → 0)
       //   and fades in quickly (fadeDuration * 0.5).
+      // — pointer-events are updated so only the incoming
+      //   item is interactive during and after the transition.
       function rotateMarquee() {
         const next = (current + 1) % items.length;
 
@@ -363,6 +370,7 @@ addEventListener("DOMContentLoaded", () => {
       //
       // onEnter (scrolling down, title leaves viewport):
       //   Instantly snaps marquee out and logo into position.
+      //   No animation needed — the nav is hidden at this point.
       //
       // onLeaveBack (scrolling up, title re-enters viewport):
       //   Instantly hides the logo, then animates the marquee
@@ -416,7 +424,8 @@ addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Start the rotator if there is more than one item.
+      // Start the rotator if there is more than one item —
+      // startRotator() handles the initial reset internally.
       // For a single item, call resetRotator() directly to set
       // the correct initial opacity and pointer-events state
       // without starting the rotation cycle.
@@ -427,9 +436,10 @@ addEventListener("DOMContentLoaded", () => {
       }
 
     } else {
-      // No hero title — hide the marquee and ensure logo is
-      // in its natural position
-      if (marquee) gsap.set(marquee, { display: 'none' });
+      // No hero title — hide the marquee and reset logo and
+      // marquee yPercent so state is clean for any subsequent
+      // return to a hero page
+      if (marquee) gsap.set(marquee, { display: 'none', yPercent: 0 });
       if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
     }
 
@@ -458,46 +468,66 @@ addEventListener("DOMContentLoaded", () => {
   // between pages. The nav and footer persist untouched —
   // only .main_wrapper is swapped on each transition.
   //
-  // beforeLeave: skips the exit animation if the mobile menu
-  //   is open (user navigated from the mobile nav). Otherwise
-  //   fades the outgoing container and slides the nav up.
+  // leave: skips the exit animation if the mobile menu is open
+  //   (user navigated from the mobile nav). Otherwise fades
+  //   the outgoing container and slides the nav up. Returns a
+  //   Promise so Barba waits for the animation to complete
+  //   before swapping the container.
   //
-  // afterEnter: scrolls to the top, refreshes ScrollTrigger
-  //   so it recalculates positions for the new page content,
-  //   slides the nav back into view, restores container opacity,
-  //   then reinitialises page-specific JS via initPage().
+  // enter: scrolls to the top, refreshes ScrollTrigger so it
+  //   recalculates positions for the new page content, slides
+  //   the nav back into view, restores container opacity, then
+  //   reinitialises page-specific JS via initPage().
+  //
+  // Note: beforeLeave/afterEnter hooks are not used as they
+  // are not reliably fired in this environment. The core
+  // leave/enter hooks are used instead.
   // ============================================================
   barba.init({
-  transitions: [{
-    name: 'default',
+    transitions: [{
+      name: 'default',
 
-    leave({ current }) {
-      return new Promise(resolve => {
-        if (menuOpen) {
-          resolve();
-          return;
-        }
+      leave({ current }) {
+        return new Promise(resolve => {
 
-        const tl = gsap.timeline({
-          delay: 0.15,
-          onComplete: resolve
+          // Skip exit animation if mobile menu is open —
+          // the user navigated via the mobile nav
+          if (menuOpen) {
+            resolve();
+            return;
+          }
+
+          // Fade outgoing container and slide nav up
+          const tl = gsap.timeline({
+            delay: 0.15,
+            onComplete: resolve
+          });
+
+          tl.to(current.container, { opacity: 0, duration: 0.15, ease: "power2.in" })
+            .to(nav, { yPercent: -100, duration: 0.35, ease: "power2.inOut" });
+
         });
+      },
 
-        tl.to(current.container, { opacity: 0, duration: 0.15, ease: "power2.in" })
-          .to(nav, { yPercent: -100, duration: 0.35, ease: "power2.inOut" });
-      });
-    },
+      enter({ next }) {
+        // Scroll to top before reinitialising page content
+        window.scrollTo(0, 0);
 
-    enter({ next }) {
-      window.scrollTo(0, 0);
-      ScrollTrigger.refresh();
-      gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
-      gsap.set(next.container, { opacity: 1 });
-      initPage(next.namespace);
-    }
+        // Recalculate ScrollTrigger positions for new page
+        ScrollTrigger.refresh();
 
-  }]
-});
+        // Slide nav back into view
+        gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
+
+        // Restore incoming container opacity
+        gsap.set(next.container, { opacity: 1 });
+
+        // Reinitialise page-specific JS for the new page
+        initPage(next.namespace);
+      }
+
+    }]
+  });
 
 
   // ============================================================
