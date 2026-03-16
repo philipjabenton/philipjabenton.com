@@ -201,23 +201,30 @@ addEventListener("DOMContentLoaded", () => {
   // A small delay ensures the reset runs after Barba has fully
   // swapped the container and initPage has completed.
   // ============================================================
-  window.addEventListener('resize', () => {
-    if (!isMobile() && menuOpen) {
-      menuOpen = false;
-      navTl.reverse();
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
+  let resizeTimer = null;
+let resizeFired = false;
+
+window.addEventListener('resize', () => {
+  if (!isMobile() && menuOpen) {
+    menuOpen = false;
+    navTl.reverse();
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  }
+
+  if (!isMobile() && logoLink && !resizeFired) {
+    resizeFired = true;
+    const heroTitle = document.querySelector('.hero_title');
+    if (!heroTitle) {
+      gsap.set(logoLink, { clearProps: "transform" });
     }
-  
-    if (!isMobile() && logoLink) {
-      gsap.delayedCall(0.1, () => {
-        const heroTitle = document.querySelector('.hero_title');
-        if (!heroTitle) {
-          gsap.set(logoLink, { clearProps: "transform" });
-        }
-      });
-    }
-  });
+  }
+
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    resizeFired = false;
+  }, 150);
+});
 
 
   // ============================================================
