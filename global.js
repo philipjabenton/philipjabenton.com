@@ -528,14 +528,20 @@ addEventListener("DOMContentLoaded", () => {
   // PREVENT SAME-PAGE NAVIGATION
   // Intercepts clicks on links that match the current URL and
   // cancels them entirely — preventing a full page reload.
-  // Barba's prevent option alone is not sufficient as it only
-  // stops Barba handling the link, not the browser following it.
+  // If the mobile menu is open, closes it before cancelling
+  // so the user gets feedback that the click was registered.
   // ============================================================
   document.addEventListener('click', (e) => {
     const link = e.target.closest('a');
     if (!link) return;
     if (link.href === window.location.href) {
       e.preventDefault();
+      if (menuOpen) {
+        menuOpen = false;
+        navTl.reverse();
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+      }
     }
   });
 
