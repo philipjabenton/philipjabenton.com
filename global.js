@@ -652,9 +652,11 @@ addEventListener("DOMContentLoaded", () => {
         // incoming container to avoid stale DOM references
         initPage(next.namespace, next.container);
 
-        // Refresh after initPage so newly created ScrollTriggers
-        // have their positions calculated correctly
-        ScrollTrigger.refresh();
+        // Defer refresh until after the browser has painted the
+        // new container so ScrollTrigger calculates positions correctly
+        requestAnimationFrame(() => {
+          ScrollTrigger.refresh();
+        });
       }
 
     }]
