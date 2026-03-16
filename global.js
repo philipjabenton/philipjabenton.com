@@ -194,37 +194,15 @@ addEventListener("DOMContentLoaded", () => {
   // is open, close it and release the scroll lock. In normal
   // use this only occurs in DevTools, but prevents the menu
   // persisting in an open state across breakpoints.
-  //
-  // Also corrects the logo state on resize — if the logo was
-  // hidden above the nav by a previous hero page visit, it is
-  // reset to its natural position on non-hero pages.
-  // A small delay ensures the reset runs after Barba has fully
-  // swapped the container and initPage has completed.
   // ============================================================
-  let resizeTimer = null;
-let resizeFired = false;
-
-window.addEventListener('resize', () => {
-  if (!isMobile() && menuOpen) {
-    menuOpen = false;
-    navTl.reverse();
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
-  }
-
-  if (!isMobile() && logoLink && !resizeFired) {
-    resizeFired = true;
-    const heroTitle = document.querySelector('.hero_title');
-    if (!heroTitle) {
-      gsap.set(logoLink, { clearProps: "transform" });
+  window.addEventListener('resize', () => {
+    if (!isMobile() && menuOpen) {
+      menuOpen = false;
+      navTl.reverse();
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
-  }
-
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    resizeFired = false;
-  }, 150);
-});
+  });
 
 
   // ============================================================
