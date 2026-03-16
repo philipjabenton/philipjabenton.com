@@ -201,13 +201,13 @@ addEventListener("DOMContentLoaded", () => {
       navTl.reverse();
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
+    }
 
-      // Reset logo to correct state for the current page
-      if (logoLink) {
-        const heroTitle = document.querySelector('.hero_title');
-        if (!heroTitle) {
-          gsap.set(logoLink, { clearProps: "transform" });
-        }
+    // Always correct logo state on resize based on current page
+    if (!isMobile() && logoLink) {
+      const heroTitle = document.querySelector('.hero_title');
+      if (!heroTitle) {
+        gsap.set(logoLink, { clearProps: "transform" });
       }
     }
   });
