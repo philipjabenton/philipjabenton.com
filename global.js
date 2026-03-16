@@ -21,6 +21,7 @@ addEventListener("DOMContentLoaded", () => {
   // reverse() on it when navigating from the mobile menu.
   let menuOpen = false;
   let navTl    = null;
+  const isMobile = () => window.innerWidth <= 991;
 
 
   // ============================================================
@@ -185,6 +186,23 @@ addEventListener("DOMContentLoaded", () => {
     });
 
   }
+
+
+  // ============================================================
+  // MOBILE NAV — RESIZE HANDLER
+  // If the window is resized to desktop while the mobile menu
+  // is open, close it and release the scroll lock. In normal
+  // use this only occurs in DevTools, but prevents the menu
+  // persisting in an open state across breakpoints.
+  // ============================================================
+  window.addEventListener('resize', () => {
+    if (!isMobile() && menuOpen) {
+      menuOpen = false;
+      navTl.reverse();
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+  });
 
 
   // ============================================================
@@ -388,7 +406,6 @@ addEventListener("DOMContentLoaded", () => {
     // The swap is disabled on tablet and mobile (≤991px).
     // ----------------------------------------------------------
     const heroTitle = scope.querySelector('.hero_title');
-    const isMobile  = () => window.innerWidth <= 991;
 
     if (heroTitle && marquee && logoLink) {
 
