@@ -17,8 +17,8 @@ addEventListener("DOMContentLoaded", () => {
 
   // Track mobile menu open/closed state at the outer scope so
   // Barba's leave hook can read it without class checks.
-  // navTl is declared here so Barba's leave hook can call
-  // reverse() on it when navigating from the mobile menu.
+  // navTl is declared here so Barba's leave hook and the
+  // resize handler can call reverse() on it when needed.
   let menuOpen = false;
   let navTl    = null;
   const isMobile = () => window.innerWidth <= 991;
@@ -198,7 +198,7 @@ addEventListener("DOMContentLoaded", () => {
   window.addEventListener('resize', () => {
     if (!isMobile() && menuOpen) {
       menuOpen = false;
-      navTl.reverse();
+      if (navTl) navTl.reverse();
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     }
@@ -320,6 +320,40 @@ addEventListener("DOMContentLoaded", () => {
 
 
   // ============================================================
+  // MARQUEE / LOGO SWAP — RESIZE HANDLER
+  // Corrects the marquee and logo position when the window is
+  // resized, based on the current breakpoint and scroll
+  // position. Declared at the outer scope rather than inside
+  // initPage to prevent a new listener being added on every
+  // transition to a hero page.
+  //
+  // Queries .hero_title fresh on each resize so it always
+  // reflects the current page. Returns early on non-hero pages
+  // since no swap correction is needed.
+  // ============================================================
+  window.addEventListener('resize', () => {
+    if (!marquee || !logoLink) return;
+    const heroTitle = document.querySelector('.hero_title');
+    if (!heroTitle) return;
+
+    if (isMobile()) {
+      gsap.set(logoLink, { clearProps: "transform" });
+      gsap.set(marquee, { yPercent: 0 });
+    } else {
+      const heroRect = heroTitle.getBoundingClientRect();
+      const scrolledPast = heroRect.bottom < 0;
+      if (scrolledPast) {
+        gsap.set(logoLink, { yPercent: 0 });
+        gsap.set(marquee, { yPercent: 100 });
+      } else {
+        gsap.set(logoLink, { yPercent: -100 });
+        gsap.set(marquee, { yPercent: 0 });
+      }
+    }
+  });
+
+
+  // ============================================================
   // HEAD TAG SYNC
   // Barba swaps the container but does not update <head> tags
   // beyond the page title. This function syncs meta tags from
@@ -333,9 +367,9 @@ addEventListener("DOMContentLoaded", () => {
   function updateHead(nextHtml) {
     const parser = new DOMParser();
     const nextDocument = parser.parseFromString(nextHtml, 'text/html');
-  
+
     document.title = nextDocument.title;
-  
+
     const nextMetas = nextDocument.querySelectorAll('meta');
     nextMetas.forEach(nextMeta => {
       const name     = nextMeta.getAttribute('name');
@@ -345,7 +379,7 @@ addEventListener("DOMContentLoaded", () => {
         : property
           ? `meta[property="${property}"]`
           : null;
-  
+
       if (selector) {
         const currentMeta = document.querySelector(selector);
         if (currentMeta) {
@@ -478,30 +512,6 @@ addEventListener("DOMContentLoaded", () => {
       pageScrollTriggers.push(swapTrigger);
 
 
-      // --------------------------------------------------------
-      // RESIZE HANDLER — SWAP STATE
-      // When the window is resized, corrects the position of
-      // the marquee and logo based on the current breakpoint
-      // and scroll position, preventing both elements appearing
-      // simultaneously after crossing the mobile breakpoint.
-      // --------------------------------------------------------
-      window.addEventListener('resize', () => {
-        if (isMobile()) {
-          gsap.set(logoLink, { clearProps: "transform" });
-          gsap.set(marquee, { yPercent: 0 });
-        } else {
-          const heroRect = heroTitle.getBoundingClientRect();
-          const scrolledPast = heroRect.bottom < 0;
-          if (scrolledPast) {
-            gsap.set(logoLink, { yPercent: 0 });
-            gsap.set(marquee, { yPercent: 100 });
-          } else {
-            gsap.set(logoLink, { yPercent: -100 });
-            gsap.set(marquee, { yPercent: 0 });
-          }
-        }
-      });
-
       // Start the rotator if there is more than one item —
       // startRotator() handles the initial reset internally.
       // For a single item, call resetRotator() directly to set
@@ -555,7 +565,7 @@ addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       if (menuOpen) {
         menuOpen = false;
-        navTl.reverse();
+        if (navTl) navTl.reverse();
         document.body.style.overflow = '';
         document.documentElement.style.overflow = '';
       }
