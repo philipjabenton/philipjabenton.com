@@ -391,12 +391,6 @@ addEventListener("DOMContentLoaded", () => {
     // provided, otherwise fall back to the full document
     const scope = container || document;
 
-    // Always reset logo to natural position at the start of
-    // every page initialisation. The hero page branch will
-    // re-apply yPercent: -100 if needed, and non-hero pages
-    // will leave it in its natural position.
-    if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
-
     // ----------------------------------------------------------
     // NAV CENTRE SWAP & MARQUEE ROTATOR
     // This section only runs on pages that have a .hero_title
