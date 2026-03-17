@@ -19,8 +19,12 @@ addEventListener("DOMContentLoaded", () => {
   // Barba's leave hook can read it without class checks.
   // navTl is declared here so Barba's leave hook and the
   // resize handler can call reverse() on it when needed.
-  let menuOpen = false;
-  let navTl    = null;
+  // currentPageModule holds a reference to the active page's
+  // module (e.g. window.homePage) so its leave() function can
+  // be called cleanly before each Barba transition.
+  let menuOpen          = false;
+  let navTl             = null;
+  let currentPageModule = null;
   const isMobile = () => window.innerWidth <= 991;
 
 
@@ -403,12 +407,18 @@ addEventListener("DOMContentLoaded", () => {
   // container, which remains briefly in the DOM during the
   // transition while both containers are present.
   //
+  // Page module dispatch:
+  //   Each page-specific JS file (e.g. home.js) exposes a
+  //   window global following the convention
+  //   window[namespace + 'Page'] — so namespace 'home' maps
+  //   to window.homePage, 'work' to window.workPage, and so on.
+  //   Scripts are loaded dynamically on first visit and cached
+  //   by the browser — subsequent visits reuse the existing
+  //   module without reloading.
+  //
   // Currently handles:
   //   - Nav centre swap & marquee rotator
-  //
-  // As page-specific JS files are introduced (e.g. home.js),
-  // they will expose an init() function called from here
-  // based on the Barba namespace.
+  //   - home namespace → home.js → window.homePage
   // ============================================================
   let pageScrollTriggers = [];
 
@@ -532,6 +542,58 @@ addEventListener("DOMContentLoaded", () => {
       if (logoLink) gsap.set(logoLink, { clearProps: "transform" });
     }
 
+
+    // ----------------------------------------------------------
+    // PAGE MODULE DISPATCH
+    // Dynamically loads the page-specific script if not already
+    // present, then calls its init() function. Scripts load
+    // once and are cached by the browser — subsequent visits
+    // reuse the existing module without reloading.
+    //
+    // Each page module is a window global following the
+    // convention window[namespace + 'Page'] — so namespace
+    // 'home' maps to window.homePage, 'work' to window.workPage,
+    // and so on. Each module exposes init(container) and leave().
+    //
+    // requestAnimationFrame defers init() until after the
+    // browser has painted the new container, ensuring the DOM
+    // is fully ready before the module queries it.
+    //
+    // To add a new page module, add an entry to pageModules:
+    //   work:    'work.js',
+    //   contact: 'contact.js'
+    // ----------------------------------------------------------
+    currentPageModule = null;
+
+    const pageModules = {
+      home: 'home.js'
+    };
+
+    const scriptSrc = pageModules[namespace];
+
+    if (scriptSrc) {
+      const alreadyLoaded = document.querySelector(`script[src*="${scriptSrc}"]`);
+      const mod           = window[namespace + 'Page'];
+
+      if (alreadyLoaded && mod) {
+        // Script already in DOM — call init directly
+        currentPageModule = mod;
+        requestAnimationFrame(() => currentPageModule.init(container));
+      } else if (!alreadyLoaded) {
+        // Load the script, then call init once ready
+        const script  = document.createElement('script');
+        script.src    = `https://raw.githack.com/philipjabenton/philipjabenton.com/main/${scriptSrc}`;
+        script.onload = () => {
+          const loaded = window[namespace + 'Page'];
+          if (loaded) {
+            currentPageModule = loaded;
+            requestAnimationFrame(() => currentPageModule.init(container));
+          }
+        };
+        document.body.appendChild(script);
+      }
+    }
+
   }
 
 
@@ -583,11 +645,14 @@ addEventListener("DOMContentLoaded", () => {
   //   one is already in progress — avoids a flash if the user
   //   clicks a link mid-transition.
   //
-  // leave: if the mobile menu is open, reverses the nav
-  //   animation and releases the scroll lock, then resolves
-  //   immediately so the new page loads underneath the closing
-  //   menu animation. Otherwise fades the outgoing container
-  //   and slides the nav up, resolving when complete.
+  // leave: calls the current page module's leave() first to
+  //   cleanly tear down any page-specific JS (timers, Splide
+  //   instances, etc.) before the transition begins.
+  //   If the mobile menu is open, reverses the nav animation
+  //   and releases the scroll lock, then resolves immediately
+  //   so the new page loads underneath the closing menu
+  //   animation. Otherwise fades the outgoing container and
+  //   slides the nav up, resolving when complete.
   //
   // enter: syncs head tags from the incoming page, restores
   //   the incoming container opacity, slides the nav back into
@@ -609,6 +674,12 @@ addEventListener("DOMContentLoaded", () => {
 
       leave({ current }) {
         return new Promise(resolve => {
+
+          // Tear down current page module before transition
+          if (currentPageModule && currentPageModule.leave) {
+            currentPageModule.leave();
+            currentPageModule = null;
+          }
 
           // If mobile menu is open, close it and resolve
           // immediately — the new page loads underneath the
