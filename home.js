@@ -118,4 +118,4 @@ function init(container) {
 // Self-init on first load — deferred to ensure Webflow CMS
 // has finished rendering before Splide queries the DOM
 const _container = document.querySelector('[data-barba="container"]');
-requestAnimationFrame(() => window.homePage.init(_container));
+setTimeout(() => window.homePage.init(_container), 100);
