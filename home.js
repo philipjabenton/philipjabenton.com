@@ -117,8 +117,7 @@ function init(container) {
 })();
 
 
-// Self-init on first load — global.js has already run initPage
-// by the time this script loads, so we initialise directly here.
-// Subsequent transitions are handled by global.js via the dispatch.
+// Self-init on first load — deferred to ensure Webflow CMS
+// has finished rendering before Splide queries the DOM
 const _container = document.querySelector('[data-barba="container"]');
-window.homePage.init(_container);
+requestAnimationFrame(() => window.homePage.init(_container));
