@@ -93,7 +93,7 @@ window.homePage = (() => {
       if (current) scheduleNext(current.slide);
     });
 
-    splide.mount();
+    requestAnimationFrame(() => splide.mount());
   }
 
 
