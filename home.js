@@ -10,6 +10,10 @@
 // automatically on the homepage. Per-slide hold durations are
 // read from a data-hold attribute on each slide element,
 // allowing CMS-driven timing control per image.
+//
+// Note: Splide requires the root element to have the class
+// 'splide' in addition to any custom classes — this is set
+// in Webflow on the .hero_showreel element directly.
 // ============================================================
 
 window.homePage = (() => {
@@ -60,12 +64,12 @@ window.homePage = (() => {
   //   pagination / arrows / drag — all disabled for a clean,
   //                     automatic presentation experience
   // ============================================================
-function init(container) {
-  const scope    = container || document;
-  const sliderEl = scope.querySelector('.hero_showreel');
-  if (!sliderEl) return;
+  function init(container) {
+    const scope    = container || document;
+    const sliderEl = scope.querySelector('.hero_showreel');
+    if (!sliderEl) return;
 
-  splide = new Splide('.hero_showreel', {
+    splide = new Splide('.hero_showreel', {
       type:       'fade',
       speed:      0,
       rewind:     true,
@@ -110,12 +114,23 @@ function init(container) {
   }
 
 
+  // ============================================================
+  // SELF-INIT ON FIRST LOAD
+  // global.js runs initPage() before home.js has loaded, so
+  // the page module dispatch in initPage() finds nothing on
+  // first load. This self-init fills that gap by calling
+  // init() directly once the script executes.
+  //
+  // requestAnimationFrame defers execution until after the
+  // browser has painted, ensuring the DOM is fully ready.
+  //
+  // Subsequent page transitions are handled by global.js via
+  // the initPage() dispatch — this block only runs once.
+  // ============================================================
+  const _container = document.querySelector('[data-barba="container"]');
+  requestAnimationFrame(() => window.homePage.init(_container));
+
+
   return { init, leave };
 
 })();
-
-
-// Self-init on first load — deferred to ensure Webflow CMS
-// has finished rendering before Splide queries the DOM
-const _container = document.querySelector('[data-barba="container"]');
-setTimeout(() => window.homePage.init(_container), 100);
