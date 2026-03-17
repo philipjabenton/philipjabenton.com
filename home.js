@@ -60,10 +60,12 @@ window.homePage = (() => {
   //   pagination / arrows / drag — all disabled for a clean,
   //                     automatic presentation experience
   // ============================================================
-  function init(container) {
-    const scope    = container || document;
-    const sliderEl = scope.querySelector('.hero_showreel');
-    if (!sliderEl) return;
+function init(container) {
+  console.log('homePage.init called');
+  const scope    = container || document;
+  const sliderEl = scope.querySelector('.hero_showreel');
+  console.log('sliderEl:', sliderEl);
+  if (!sliderEl) return;
 
     splide = new Splide(sliderEl, {
       type:       'fade',
