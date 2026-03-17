@@ -114,23 +114,6 @@ window.homePage = (() => {
   }
 
 
-  // ============================================================
-  // SELF-INIT ON FIRST LOAD
-  // global.js runs initPage() before home.js has loaded, so
-  // the page module dispatch in initPage() finds nothing on
-  // first load. This self-init fills that gap by calling
-  // init() directly once the script executes.
-  //
-  // requestAnimationFrame defers execution until after the
-  // browser has painted, ensuring the DOM is fully ready.
-  //
-  // Subsequent page transitions are handled by global.js via
-  // the initPage() dispatch — this block only runs once.
-  // ============================================================
-  const _container = document.querySelector('[data-barba="container"]');
-  requestAnimationFrame(() => window.homePage.init(_container));
-
-
   return { init, leave };
 
 })();
