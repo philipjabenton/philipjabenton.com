@@ -61,13 +61,11 @@ window.homePage = (() => {
   //                     automatic presentation experience
   // ============================================================
 function init(container) {
-  console.log('homePage.init called');
   const scope    = container || document;
   const sliderEl = scope.querySelector('.hero_showreel');
-  console.log('sliderEl:', sliderEl);
   if (!sliderEl) return;
 
-    splide = new Splide(sliderEl, {
+  splide = new Splide('.hero_showreel', {
       type:       'fade',
       speed:      0,
       rewind:     true,
