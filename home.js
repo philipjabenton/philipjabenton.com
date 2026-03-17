@@ -23,7 +23,7 @@ window.homePage = (() => {
 
   // Default hold duration (ms) used when a slide has no
   // data-hold attribute set, or the value is not a valid number
-  const DEFAULT_HOLD = 500;
+  const DEFAULT_HOLD = 250;
 
 
   // ============================================================
