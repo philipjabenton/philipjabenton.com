@@ -37,11 +37,22 @@ window.homePage = (() => {
   // ============================================================
   function scheduleNext(slideEl) {
     clearTimeout(holdTimer);
-    const hold = parseInt(slideEl.dataset.hold, 10);
-    holdTimer  = setTimeout(
-      () => { if (splide) splide.go('>'); },
-      Number.isFinite(hold) ? hold : DEFAULT_HOLD
-    );
+    const hold = slideEl ? parseInt(slideEl.dataset.hold, 10) : NaN;
+    holdTimer  = setTimeout(advance, Number.isFinite(hold) ? hold : DEFAULT_HOLD);
+  }
+
+
+  // ============================================================
+  // ADVANCE
+  // Moves to the next slide and schedules the following one.
+  // Self-contained loop — does not rely on Splide's transition
+  // events, which are unreliable at speed: 0.
+  // ============================================================
+  function advance() {
+    if (!splide) return;
+    splide.go('>');
+    const current = splide.Components.Slides.getAt(splide.index);
+    scheduleNext(current ? current.slide : null);
   }
 
 
@@ -54,6 +65,12 @@ window.homePage = (() => {
   // are scoped to the new page — consistent with how all
   // page-specific init functions are called.
   //
+  // Entrance animation sequence:
+  //   1. Title wrapper fades up into position
+  //   2. Showreel fades in after a short delay
+  //   Splide mounts before the fade so it is ready to cycle
+  //   as soon as the showreel becomes visible.
+  //
   // Splide config:
   //   type: 'fade'  — opacity-based transition (no movement)
   //   speed: 0      — zero transition duration = hard cut
@@ -65,9 +82,14 @@ window.homePage = (() => {
   //                     automatic presentation experience
   // ============================================================
   function init(container) {
-    const scope    = container || document;
-    const sliderEl = scope.querySelector('.hero_showreel');
+    const scope        = container || document;
+    const sliderEl     = scope.querySelector('.hero_showreel');
+    const titleWrapper = scope.querySelector('.hero_title-wrapper');
     if (!sliderEl) return;
+
+    // Set initial states — both hidden before animation begins
+    gsap.set(sliderEl, { opacity: 0 });
+    if (titleWrapper) gsap.set(titleWrapper, { opacity: 0, y: 16 });
 
     splide = new Splide('.hero_showreel', {
       type:       'fade',
@@ -79,21 +101,35 @@ window.homePage = (() => {
       drag:       false,
     });
 
-    // Start the hold timer for the first slide once Splide
-    // has mounted and the initial slide is in place
-    splide.on('mounted', () => {
-      const current = splide.Components.Slides.getAt(splide.index);
-      if (current) scheduleNext(current.slide);
-    });
+    // Mount Splide before the fade-in so the first slide is
+    // in position and ready when the showreel becomes visible
+    requestAnimationFrame(() => {
+      splide.mount();
 
-    // After each slide change, schedule the next advance
-    // based on the incoming slide's data-hold value
-    splide.on('moved', (newIndex) => {
-      const current = splide.Components.Slides.getAt(newIndex);
-      if (current) scheduleNext(current.slide);
-    });
+      // 1. Title fades up first
+      if (titleWrapper) {
+        gsap.to(titleWrapper, {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          delay: 0.2,
+          ease: "power2.out"
+        });
+      }
 
-    requestAnimationFrame(() => splide.mount());
+      // 2. Showreel fades in after title has arrived,
+      //    then starts the slide cycle
+      gsap.to(sliderEl, {
+        opacity: 1,
+        duration: 0.8,
+        delay: 0.6,
+        ease: "power2.out",
+        onComplete: () => {
+          const current = splide.Components.Slides.getAt(splide.index);
+          scheduleNext(current ? current.slide : null);
+        }
+      });
+    });
   }
 
 
