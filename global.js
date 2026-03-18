@@ -73,7 +73,7 @@ addEventListener("DOMContentLoaded", () => {
       yPercent: 0,
       opacity: 1,
       duration: 0.35,
-      delay: 1.35,
+      delay: 0.3,
       ease: "power1.inOut",
       clearProps: "transform",
       onComplete: () => {
