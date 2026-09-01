@@ -5,24 +5,28 @@
 // an existing effect on a new image anywhere on the site never needs a code
 // change here — just tag the element in Webflow.
 //
-// "curtain" (image) and "word-rise"/"letter-rise" (text) are wired up
-// below. The rest of the image library (rise, wipe-up, sweep, letterbox,
-// zoom, focus, colour, split, drift, stagger, iris, skew, rule, parallax)
-// exists in the same shape on the Image Reveal Lab page, and the rest of
-// the text library (mask-rise, character-wave, soft-focus, proof-wipe,
-// ink-gradient, and the other Text Reveal Lab specimens) exists the same
-// way on the Text Reveal Lab page — copy an effect's function in here,
-// following the curtain/word-rise/letter-rise examples, whenever you're
-// ready to adopt one. No other file needs to change to add one; text
-// effects use the exact same [data-reveal] attribute and FX dispatch as
-// image effects, just built with SplitText instead of pic().
+// "curtain" (image), "word-rise"/"letter-rise"/"fade-rise" (text), and
+// "sequence" (groups several of the above into one timed beat — see its
+// comment below) are wired up below. The rest of the image library (rise,
+// wipe-up, sweep, letterbox, zoom, focus, colour, split, drift, stagger,
+// iris, skew, rule, parallax) exists in the same shape on the Image Reveal
+// Lab page, and the rest of the text library (mask-rise, character-wave,
+// soft-focus, proof-wipe, ink-gradient, and the other Text Reveal Lab
+// specimens) exists the same way on the Text Reveal Lab page — copy an
+// effect's function in here, following the curtain/word-rise/letter-rise
+// examples, whenever you're ready to adopt one. No other file needs to
+// change to add one; text effects use the exact same [data-reveal]
+// attribute and FX dispatch as image effects, just built with SplitText
+// instead of pic().
 //
 // Depends on: GSAP + ScrollTrigger (already loaded site-wide). "word-rise"
-// additionally needs the SplitText plugin loaded before this file — add
+// and "letter-rise" additionally need the SplitText plugin loaded before
+// this file — add
 // <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/SplitText.min.js">
 // alongside the existing GSAP script tag if it isn't there yet. If SplitText
-// isn't present, word-rise no-ops and the element is just made visible
-// (see the guard inside the effect below) — it won't break the page.
+// isn't present, those two effects no-op and the element is just made
+// visible (see the guard inside each effect below) — it won't break the
+// page. "fade-rise" and "sequence" have no SplitText dependency.
 // Exposes: window.Reveals = { init(root), effects }
 //   init(root) scans root (default: document) for [data-reveal] elements,
 //   builds and arms each one, and returns the array of ScrollTrigger
@@ -134,6 +138,82 @@
           ease: o.ease,
           stagger: staggerSet ? o.stagger : 0.02
         }, 0);
+    },
+
+    // A plain single-element fade + rise — no SplitText, so it works on
+    // any block of text (or any element at all) without splitting it into
+    // words or characters. The natural choice for a lead paragraph,
+    // button, or caption sitting alongside a split heading inside a
+    // data-reveal="sequence" group — splitting every word of a lead
+    // sentence is usually more motion than it needs. Same generic amount/
+    // ease/duration attributes as every other effect.
+    'fade-rise': function (el, o) {
+      gsap.set(el, { opacity: 0, y: o.amount });
+      return tl(o)
+        .to(el, {
+          opacity: 1,
+          y: 0,
+          duration: dur(o, 0.6),
+          ease: o.ease
+        }, 0);
+    },
+
+    // Orchestrates several *different* effects as one timed group, rather
+    // than each firing independently the moment it crosses its own
+    // ScrollTrigger line. Put data-reveal="sequence" on the wrapping
+    // container; give each child its own data-reveal="<effect>" (any of
+    // the above — word-rise, fade-rise, curtain, whatever fits) plus its
+    // own per-effect attributes exactly as normal. sequence doesn't
+    // replace those — it builds each child's timeline the usual way, then
+    // decides WHEN each one starts. One shared ScrollTrigger on the
+    // container fires the whole group together, so a hero's headline,
+    // lead text and image reveal as one coordinated beat instead of
+    // drifting relative to each other (which independent per-element
+    // ScrollTriggers + data-reveal-delay can't reliably guarantee once
+    // elements sit at different scroll positions).
+    //
+    // Ordering follows document order (top-to-bottom in the HTML) - no
+    // separate index attribute needed. The gap between each child's start
+    // is data-reveal-stagger set on the GROUP element itself (same
+    // attribute/meaning as everywhere else — default 0.11s; try something
+    // like 0.25-0.4 on a hero for a slower, more deliberate beat). A
+    // child's own data-reveal-start/data-reveal-repeat are ignored, since
+    // it no longer has its own trigger — those only matter on the group
+    // element. Reusable anywhere this multi-step pattern shows up, not
+    // hero-specific.
+    sequence: function (el, o) {
+      var children = [].slice.call(el.querySelectorAll('[data-reveal]'));
+      if (!children.length) { return null; }
+
+      var master = tl(o);
+
+      children.forEach(function (child, i) {
+        // Claim each child now, before the outer scan (which will reach
+        // these same elements later, since querySelectorAll returns them
+        // in document order after this container) gets to them — sequence
+        // owns their timing, so they must not also get an independent
+        // ScrollTrigger of their own.
+        child.__revealDone = true;
+
+        var fn = FX[child.getAttribute('data-reveal')];
+        if (!fn) { child.style.visibility = 'visible'; return; }
+
+        var co = opts(child);
+        var childTl = fn(child, co);
+        child.style.visibility = 'visible';
+        if (childTl) {
+          // Every effect function builds its timeline paused (see tl()) so
+          // it can be armed and fired later by its own ScrollTrigger. Here
+          // there is no per-child trigger — master's playhead is what
+          // drives it — so the child must be unpaused, or its own paused
+          // flag blocks it from advancing even while nested and even
+          // though master itself is playing.
+          childTl.paused(false);
+          master.add(childTl, i * o.stagger);
+        }
+      });
+
+      return master;
     }
 
   };
