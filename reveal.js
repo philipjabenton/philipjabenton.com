@@ -253,6 +253,18 @@
         onEnter:     function () { t.restart(true); },
         onEnterBack: function () { if (o.repeat) { t.restart(true); } }
       });
+
+      // ScrollTrigger only calls onEnter in response to an actual scroll
+      // crossing its start line — it does NOT fire it just because the
+      // trigger happens to already be inside its active window the moment
+      // it's created. Anything positioned above the fold (a hero, or any
+      // element high enough to already be in view at load) ends up with
+      // st.isActive true but onEnter never called, so it sits invisible
+      // forever until the visitor scrolls away and back — a real bug this
+      // page turned up, not a below-the-fold edge case. If the trigger is
+      // already active right after creation, fire it ourselves once here.
+      if (st.isActive) { t.restart(true); }
+
       created.push(st);
     });
 
