@@ -436,6 +436,23 @@ addEventListener("DOMContentLoaded", () => {
     const scope = container || document;
 
     // ----------------------------------------------------------
+    // IMAGE REVEALS (reveals.js)
+    // Re-scan the incoming container for [data-reveal] elements on
+    // every Barba transition (and on first load). reveal() guards
+    // already-handled elements internally, so calling it again here
+    // is always safe. Any ScrollTriggers it creates are folded into
+    // this page's own cleanup list so killPageScrollTriggers() clears
+    // them out before the next transition too.
+    // ----------------------------------------------------------
+    if (window.Reveals) {
+      const revealTriggers = window.Reveals.init(scope);
+      if (revealTriggers && revealTriggers.length) {
+        pageScrollTriggers = pageScrollTriggers.concat(revealTriggers);
+      }
+    }
+
+    
+    // ----------------------------------------------------------
     // NAV CENTRE SWAP & MARQUEE ROTATOR
     // This section only runs on pages that have a .hero_title
     // element. On pages without one, the logo sits in the nav
