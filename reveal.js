@@ -5,13 +5,25 @@
 // an existing effect on a new image anywhere on the site never needs a code
 // change here — just tag the element in Webflow.
 //
-// Only "curtain" is wired up below. The rest of the library (rise, wipe-up,
-// sweep, letterbox, zoom, focus, colour, split, drift, stagger, iris, skew,
-// rule, parallax) exists in the same shape on the Image Reveal Lab page —
-// copy an effect's function in here, following the curtain example, whenever
-// you're ready to adopt it. No other file needs to change to add one.
+// "curtain" (image) and "word-rise" (text) are wired up below. The rest of
+// the image library (rise, wipe-up, sweep, letterbox, zoom, focus, colour,
+// split, drift, stagger, iris, skew, rule, parallax) exists in the same
+// shape on the Image Reveal Lab page, and the rest of the text library
+// (mask-rise, character-wave, soft-focus, proof-wipe, ink-gradient, and the
+// other Text Reveal Lab specimens, incl. char-rise as the character-level
+// sibling of word-rise) exists the same way on the Text Reveal Lab page —
+// copy an effect's function in here, following the curtain/word-rise
+// examples, whenever you're ready to adopt one. No other file needs to
+// change to add one; text effects use the exact same [data-reveal]
+// attribute and FX dispatch as image effects, just built with SplitText
+// instead of pic().
 //
-// Depends on: GSAP + ScrollTrigger (already loaded site-wide).
+// Depends on: GSAP + ScrollTrigger (already loaded site-wide). "word-rise"
+// additionally needs the SplitText plugin loaded before this file — add
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/SplitText.min.js">
+// alongside the existing GSAP script tag if it isn't there yet. If SplitText
+// isn't present, word-rise no-ops and the element is just made visible
+// (see the guard inside the effect below) — it won't break the page.
 // Exposes: window.Reveals = { init(root), effects }
 //   init(root) scans root (default: document) for [data-reveal] elements,
 //   builds and arms each one, and returns the array of ScrollTrigger
@@ -74,6 +86,30 @@
       return tl(o)
         .to(panel, { yPercent: -101, duration: dur(o, 1.0), ease: o.ease }, 0)
         .to(img,   { scale: 1, duration: 1.3, ease: o.ease }, 0);
+    },
+
+    // Splits the element's text into words and rises each one in from
+    // below on a short, even fade — the mechanic read directly off
+    // instrument.com's live DOM (Text Reveal Lab, Specimen A: their hero
+    // words sit inline-block at opacity:0/translateY(20px) before firing).
+    // Reuses the same generic knobs every other effect uses: amount is the
+    // rise distance in px (default 14 — set data-reveal-amount="20" on an
+    // element to match Instrument's own value exactly), ease/stagger/
+    // duration all come from the usual data-reveal-* attributes.
+    // No-ops (leaves the text visible, unanimated) if SplitText hasn't
+    // loaded — see the dependency note at the top of this file.
+    'word-rise': function (el, o) {
+      if (!window.SplitText) { return null; }
+      var split = SplitText.create(el, { type: 'words' });
+      gsap.set(split.words, { opacity: 0, y: o.amount });
+      return tl(o)
+        .to(split.words, {
+          opacity: 1,
+          y: 0,
+          duration: dur(o, 0.7),
+          ease: o.ease,
+          stagger: o.stagger
+        }, 0);
     }
 
   };
@@ -134,6 +170,7 @@
   function boot() {
     if (!window.gsap || !window.ScrollTrigger) { showEverything(); return; }
     gsap.registerPlugin(ScrollTrigger);
+    if (window.SplitText) { gsap.registerPlugin(SplitText); }
 
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       showEverything();
