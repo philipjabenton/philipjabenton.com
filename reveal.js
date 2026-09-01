@@ -5,18 +5,17 @@
 // an existing effect on a new image anywhere on the site never needs a code
 // change here — just tag the element in Webflow.
 //
-// "curtain" (image) and "word-rise" (text) are wired up below. The rest of
-// the image library (rise, wipe-up, sweep, letterbox, zoom, focus, colour,
-// split, drift, stagger, iris, skew, rule, parallax) exists in the same
-// shape on the Image Reveal Lab page, and the rest of the text library
-// (mask-rise, character-wave, soft-focus, proof-wipe, ink-gradient, and the
-// other Text Reveal Lab specimens, incl. char-rise as the character-level
-// sibling of word-rise) exists the same way on the Text Reveal Lab page —
-// copy an effect's function in here, following the curtain/word-rise
-// examples, whenever you're ready to adopt one. No other file needs to
-// change to add one; text effects use the exact same [data-reveal]
-// attribute and FX dispatch as image effects, just built with SplitText
-// instead of pic().
+// "curtain" (image) and "word-rise"/"letter-rise" (text) are wired up
+// below. The rest of the image library (rise, wipe-up, sweep, letterbox,
+// zoom, focus, colour, split, drift, stagger, iris, skew, rule, parallax)
+// exists in the same shape on the Image Reveal Lab page, and the rest of
+// the text library (mask-rise, character-wave, soft-focus, proof-wipe,
+// ink-gradient, and the other Text Reveal Lab specimens) exists the same
+// way on the Text Reveal Lab page — copy an effect's function in here,
+// following the curtain/word-rise/letter-rise examples, whenever you're
+// ready to adopt one. No other file needs to change to add one; text
+// effects use the exact same [data-reveal] attribute and FX dispatch as
+// image effects, just built with SplitText instead of pic().
 //
 // Depends on: GSAP + ScrollTrigger (already loaded site-wide). "word-rise"
 // additionally needs the SplitText plugin loaded before this file — add
@@ -109,6 +108,31 @@
           duration: dur(o, 0.7),
           ease: o.ease,
           stagger: o.stagger
+        }, 0);
+    },
+
+    // Same mechanic as word-rise, one level finer: splits into characters
+    // instead of words, so each letter rises in on its own stagger step.
+    // Reads best on short, large-type lines (headings, not paragraphs) —
+    // a long paragraph split to chars produces hundreds of staggered
+    // tweens. The default stagger (0.11s, tuned for word-rise) is far too
+    // slow at character granularity, so this uses its own tighter default
+    // (0.02s) unless data-reveal-stagger is set explicitly — same pattern
+    // dur() already uses for duration. Everything else (amount, ease,
+    // duration) comes from the same data-reveal-* attributes as every
+    // other effect. No-ops if SplitText hasn't loaded.
+    'letter-rise': function (el, o) {
+      if (!window.SplitText) { return null; }
+      var split = SplitText.create(el, { type: 'chars' });
+      var staggerSet = el.hasAttribute('data-reveal-stagger');
+      gsap.set(split.chars, { opacity: 0, y: o.amount });
+      return tl(o)
+        .to(split.chars, {
+          opacity: 1,
+          y: 0,
+          duration: dur(o, 0.5),
+          ease: o.ease,
+          stagger: staggerSet ? o.stagger : 0.02
         }, 0);
     }
 
