@@ -218,6 +218,29 @@
 
   };
 
+  // ScrollTrigger only calls onEnter in response to an actual scroll
+  // crossing its start line — never just because a trigger happens to
+  // already be inside its active window. That's fine days after load, but
+  // at load time it's a real bug: anything positioned above the fold ends
+  // up with st.isActive true and no crossing ever happens (there's nowhere
+  // above scrollY 0 to scroll from), so it sits invisible forever. A fix
+  // that only checks once, right when reveal() first builds the trigger,
+  // isn't reliable either — on a real page (web fonts swapping in, a nav
+  // bar, sliders) layout is often still settling at that point, so the
+  // trigger can genuinely read inactive there and only become active once
+  // ScrollTrigger.refresh() recalculates positions later (e.g. on window
+  // load) — and refresh() updates isActive without invoking onEnter, same
+  // problem one step later. So instead of checking once, this hooks every
+  // refresh, however it's triggered, and fires anything that's active but
+  // has never played (totalTime 0 is a safe, idempotent test — already
+  // in progress or finished timelines are left alone).
+  function fireAlreadyActive() {
+    ScrollTrigger.getAll().forEach(function (st) {
+      var t = st.trigger && st.trigger.__revealTl;
+      if (t && st.isActive && t.totalTime() === 0) { t.restart(true); }
+    });
+  }
+
   function reveal(root) {
     root = root || document;
     var els = [].slice.call(root.querySelectorAll('[data-reveal]'));
@@ -253,17 +276,6 @@
         onEnter:     function () { t.restart(true); },
         onEnterBack: function () { if (o.repeat) { t.restart(true); } }
       });
-
-      // ScrollTrigger only calls onEnter in response to an actual scroll
-      // crossing its start line — it does NOT fire it just because the
-      // trigger happens to already be inside its active window the moment
-      // it's created. Anything positioned above the fold (a hero, or any
-      // element high enough to already be in view at load) ends up with
-      // st.isActive true but onEnter never called, so it sits invisible
-      // forever until the visitor scrolls away and back — a real bug this
-      // page turned up, not a below-the-fold edge case. If the trigger is
-      // already active right after creation, fire it ourselves once here.
-      if (st.isActive) { t.restart(true); }
 
       created.push(st);
     });
@@ -301,6 +313,11 @@
       showEverything();
       return;
     }
+
+    // Registered before the first reveal() call so it's already listening
+    // for the refresh that call triggers, and for every later one (window
+    // load below, a manual refresh, a resize) — see fireAlreadyActive().
+    ScrollTrigger.addEventListener('refresh', fireAlreadyActive);
 
     reveal(document);
     bindReplay();
