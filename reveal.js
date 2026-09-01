@@ -127,9 +127,18 @@
       if (!fn) { el.style.visibility = 'visible'; return; }
 
       var o = opts(el);
-      el.style.visibility = 'visible';
 
+      // Build the effect (and set its hidden starting state) BEFORE the
+      // container is allowed to paint. Previously this order was reversed,
+      // which left a brief window — usually invisible, but real — where
+      // the container was visible before its content had been split and
+      // hidden, showing a flash of the untouched text/image. Effects that
+      // don't depend on ordering (curtain, which sets its own hidden state
+      // on existing children) are unaffected; this matters most for
+      // word-rise, whose split() call is what actually creates the
+      // elements it needs to hide.
       var t = fn(el, o);
+      el.style.visibility = 'visible';
       el.__revealTl = t;
       if (!t) { return; }
 
